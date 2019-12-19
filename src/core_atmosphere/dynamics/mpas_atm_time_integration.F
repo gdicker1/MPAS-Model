@@ -36,8 +36,8 @@ module atm_time_integration
    integer :: timerid, secs, u_secs
 
    ! Used to store physics tendencies for dynamics variables
-   real (kind=RKIND), allocatable, dimension(:,:) :: tend_ru_physics, tend_rtheta_physics, tend_rho_physics
-!$acc declare create(tend_ru_physics, tend_rtheta_physics, tend_rho_physics)  
+   real (kind=RKIND), dimension(:,:), pointer :: tend_ru_physics, tend_rtheta_physics, tend_rho_physics
+
    ! Used in physics_get_tend
    real(kind=RKIND),dimension(:,:),allocatable:: tend_th 
 !$acc declare create(tend_th)
@@ -486,7 +486,7 @@ module atm_time_integration
       real (kind=RKIND), dimension(:,:,:), pointer :: gpu_scalars_1, gpu_scalars_2
       integer, dimension(3) :: gpuArraySize
       ! Local variables for indexing
-      integer :: levelsIdx, scalarsIdx, cellsIdx
+      integer :: levelsIdx, scalarsIdx, cellsIdx, edgesIdx
       integer :: tmpnum_scalars, tmpnCells, tmpnVertLevels, tmpnEdges
       !
       ! Retrieve configuration options
@@ -509,6 +509,7 @@ module atm_time_integration
       call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
       call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
       call mpas_pool_get_subpool(domain % blocklist % structs, 'mesh', mesh)
+      call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
 
 
       !
@@ -523,13 +524,14 @@ module atm_time_integration
 
       allocate(qtot(nVertLevels,nCells+1))
 !      qtot(:,nCells+1) = 0.0_RKIND
-      allocate(tend_rtheta_physics(nVertLevels,nCells+1))
-!      tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
-      allocate(tend_rho_physics(nVertLevels,nCells+1))
-!      tend_rho_physics(:,nCells+1) = 0.0_RKIND
-      allocate(tend_ru_physics(nVertLevels,nEdges+1))
-!      tend_ru_physics(:,nEdges+1) = 0.0_RKIND
       allocate(tend_th(nVertLevels,nCellsSolve))
+
+      call mpas_pool_get_array_gpu(tend_physics, 'tend_rtheta_physics', tend_rtheta_physics)
+!      tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
+      call mpas_pool_get_array_gpu(tend_physics, 'tend_rho_physics', tend_rho_physics)
+!      tend_rho_physics(:,nCells+1) = 0.0_RKIND
+      call mpas_pool_get_array_gpu(tend_physics, 'tend_ru_physics', tend_ru_physics)
+!      tend_ru_physics(:,nEdges+1) = 0.0_RKIND
 
       !
       ! Initialize RK weights
@@ -734,9 +736,23 @@ module atm_time_integration
       !
       ! If no physics are being used, simply zero-out the physics tendency fields
       !
-      tend_ru_physics(:,:) = 0.0_RKIND
-      tend_rtheta_physics(:,:) = 0.0_RKIND
-      tend_rho_physics(:,:) = 0.0_RKIND
+!$acc parallel vector_length(128)
+!$acc loop gang vector collapse(2)
+      do edgesIdx=1,nEdges+1
+        do levelsIdx=1,nVertLevels
+          tend_ru_physics(levelsIdx,edgesIdx) = 0.0_RKIND
+        end do
+      end do
+!$acc end parallel
+!$acc parallel vector_length(128)
+!$acc loop gang vector collapse(2)
+      do cellsIdx=1,nCells+1
+        do levelsIdx=1,nVertLevels
+          tend_rtheta_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+          tend_rho_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+        end do
+      end do
+!$acc end parallel
 #endif
 
       !
@@ -1767,10 +1783,8 @@ module atm_time_integration
                deallocate(dpdz)
 
       deallocate(qtot)  !  we are finished with these now
-      deallocate(tend_rtheta_physics)
-      deallocate(tend_rho_physics)
-      deallocate(tend_ru_physics)
       deallocate(tend_th)
+
 
       !
       !  split transport, at present RK3
