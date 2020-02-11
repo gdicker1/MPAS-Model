@@ -3968,7 +3968,6 @@ module atm_time_integration
       call mpas_pool_get_array_gpu(mesh, 'bdyMaskCell', bdyMaskCell)
       call mpas_pool_get_array_gpu(mesh, 'bdyMaskEdge', bdyMaskEdge)
 
-      if (local_advance_density) then
       call atm_advance_scalars_work(num_scalars, nCells, nVertLevels, dt, &
              cellStart, cellEnd, vertexStart, vertexEnd, edgeStart, edgeEnd, &
              cellSolveStart, cellSolveEnd, vertexSolveStart, vertexSolveEnd, edgeSolveStart, edgeSolveEnd, &
@@ -3980,19 +3979,6 @@ module atm_time_integration
              nAdvCellsForEdge, advCellsForEdge, adv_coefs, adv_coefs_3rd, rho_edge, qv_init, zgrid, &
              nCellsSolve, nEdges, horiz_flux_arr, rk_step, config_time_integration_order, &
              local_advance_density)
-      else
-      call atm_advance_scalars_work(num_scalars, nCells, nVertLevels, dt, &
-             cellStart, cellEnd, vertexStart, vertexEnd, edgeStart, edgeEnd, &
-             cellSolveStart, cellSolveEnd, vertexSolveStart, vertexSolveEnd, edgeSolveStart, edgeSolveEnd, &
-             coef_3rd_order, scalar_old, scalar_new, rho_zz_old, rho_zz_new, kdiff, &
-             uhAvg, wwAvg, deriv_two, dvEdge, &
-             cellsOnEdge, edgesOnCell, nEdgesOnCell, edgesOnCell_sign, invAreaCell, &
-             scalar_tend_save, fnm, fnp, rdnw, meshScalingDel2, meshScalingDel4, &
-             bdyMaskCell, bdyMaskEdge, &
-             nAdvCellsForEdge, advCellsForEdge, adv_coefs, adv_coefs_3rd, rho_edge, qv_init, zgrid, &
-             nCellsSolve, nEdges, horiz_flux_arr, rk_step, config_time_integration_order, &
-             local_advance_density)
-      end if
 
    end subroutine atm_advance_scalars
 
@@ -4596,26 +4582,16 @@ module atm_time_integration
          end if
 
          !  begin with update of density
-!$acc parallel vector_length(128)
-!$acc loop gang vector collapse(2)
-         do iCell=cellStart,cellEnd
-         do k = 1,nVertLevels
-            rho_zz_int(k,iCell) = 0.0
-         end do
-         end do
-!$acc end parallel
-
-!$OMP BARRIER
 !$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2) private(iEdge)
          do iCell=cellSolveStart,cellSolveEnd
-!!!!$acc loop seq
-!!!            do i=1,nEdgesOnCell(iCell)
-!!!               iEdge = edgesOnCell(i,iCell)
+            do i=1,nEdgesOnCell(iCell)
+               iEdge = edgesOnCell(i,iCell)
    
 !DIR$ IVDEP
 !!!!$acc loop vector
                do k=1,nVertLevels
+                rho_zz_int(k,iCell) = 0.0
 !$acc loop seq
                 do i=1,nEdgesOnCell(iCell)
                   iEdge = edgesOnCell(i,iCell)
