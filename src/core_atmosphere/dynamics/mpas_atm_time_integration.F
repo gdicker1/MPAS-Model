@@ -1330,7 +1330,7 @@ module atm_time_integration
 
             if (config_scalar_advection .and. (.not. config_split_dynamics_transport) ) then
 
-               call advance_scalars(domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
+               call advance_scalars('scalars', domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                                     config_time_integration_order, config_split_dynamics_transport)
 
                if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
@@ -1638,9 +1638,8 @@ module atm_time_integration
          RK3_SPLIT_TRANSPORT : do rk_step = 1, 3  ! Runge-Kutta loop
 
 
-            call advance_scalars(domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
+            call advance_scalars('scalars', domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                                  config_time_integration_order, config_split_dynamics_transport)
-
 
             if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
 
@@ -2018,14 +2017,31 @@ module atm_time_integration
    !> \details
    !>  Manages the advance of the model scalar fields, taking into account
    !>  runtime selection of monotonicity and scalar transport splitting.
+   !>
+   !>  The first argument, field_name, indicates the base name for the array
+   !>  of scalars to be advected. It is assumed that, if the name of
+   !>  the array is XYZ, then there will exist:
+   !>
+   !>  (1) An array in the 'state' pool named XYZ with dimensions
+   !>      (num_XYZ, nVertLevels, nCells) and two time levels
+   !>
+   !>  (2) A dimension, num_XYZ, in the 'state' pool
+   !>
+   !>  (3) An array in the 'tend' pool named XYZ_tend with dimensions
+   !>      (num_XYZ, nVertLevels, nCells) and one time level
+   !>
+   !>  The scalars arrays can either be var_arrays formed from multiple
+   !>  constituents, each with dimensions (nVertLevels, nCells), or they can
+   !>  simply be vars with dimensions (num_???, nVertLevels, nCells).
    !
    !-----------------------------------------------------------------------
-   subroutine advance_scalars(domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
+   subroutine advance_scalars(field_name, domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                               config_time_integration_order, config_split_dynamics_transport)
 
       implicit none
 
       ! Arguments
+      character(len=*), intent(in) :: field_name
       type (domain_type), intent(inout) :: domain
       integer, intent(in) :: rk_step
       real(kind=RKIND), dimension(:), intent(in) :: rk_timestep
@@ -2175,19 +2191,19 @@ module atm_time_integration
          !$OMP PARALLEL DO
          do thread=1,nThreads
             if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
-               call atm_advance_scalars(tend, state, diag, mesh, block % configs, rk_timestep(rk_step), &
-                                       edgeThreadStart(thread), edgeThreadEnd(thread), &
-                                       cellSolveThreadStart(thread), cellSolveThreadEnd(thread), &
-                                       horiz_flux_array, rk_step, config_time_integration_order, &
-                                       advance_density=config_split_dynamics_transport)
+               call atm_advance_scalars(field_name, tend, state, diag, mesh, block % configs, rk_timestep(rk_step), &
+                                        edgeThreadStart(thread), edgeThreadEnd(thread), &
+                                        cellSolveThreadStart(thread), cellSolveThreadEnd(thread), &
+                                        horiz_flux_array, rk_step, config_time_integration_order, &
+                                        advance_density=config_split_dynamics_transport)
             else
-               call atm_advance_scalars_mono(block, tend, state, diag, mesh, block % configs, rk_timestep(rk_step), &
-                                       cellThreadStart(thread), cellThreadEnd(thread), &
-                                       edgeThreadStart(thread), edgeThreadEnd(thread), &
-                                       cellSolveThreadStart(thread), cellSolveThreadEnd(thread), &
-                                       scalar_old_arr, scalar_new_arr, s_max_arr, s_min_arr, wdtn_arr, &
-                                       scale_array, flux_array, flux_upwind_tmp_arr, flux_tmp_arr, &
-                                       advance_density=config_split_dynamics_transport, rho_zz_int=rho_zz_int)
+               call atm_advance_scalars_mono(field_name, block, tend, state, diag, mesh, block % configs, rk_timestep(rk_step), &
+                                             cellThreadStart(thread), cellThreadEnd(thread), &
+                                             edgeThreadStart(thread), edgeThreadEnd(thread), &
+                                             cellSolveThreadStart(thread), cellSolveThreadEnd(thread), &
+                                             scalar_old_arr, scalar_new_arr, s_max_arr, s_min_arr, wdtn_arr, &
+                                             scale_array, flux_array, flux_upwind_tmp_arr, flux_tmp_arr, &
+                                             advance_density=config_split_dynamics_transport, rho_zz_int=rho_zz_int)
             end if
          end do
          !$OMP END PARALLEL DO
@@ -3774,13 +3790,15 @@ module atm_time_integration
    !>  to the work routine.
    !
    !-----------------------------------------------------------------------
-   subroutine atm_advance_scalars( tend, state, diag, mesh, configs, dt, &
-                                   edgeStart, edgeEnd, &
-                                   cellSolveStart, cellSolveEnd, &
-                                   horiz_flux_arr, rk_step, config_time_integration_order, advance_density)
+   subroutine atm_advance_scalars(field_name, tend, state, diag, mesh, configs, dt, &
+                                  edgeStart, edgeEnd, &
+                                  cellSolveStart, cellSolveEnd, &
+                                  horiz_flux_arr, rk_step, config_time_integration_order, advance_density)
 
       implicit none
 
+      ! Arguments
+      character(len=*), intent(in) :: field_name
       type (mpas_pool_type), intent(in) :: tend
       type (mpas_pool_type), intent(inout) :: state
       type (mpas_pool_type), intent(in) :: diag
@@ -3793,6 +3811,8 @@ module atm_time_integration
       integer, intent(in) :: cellSolveStart, cellSolveEnd
       logical, intent(in), optional :: advance_density
 
+
+      ! Local variables
       real (kind=RKIND), dimension(:), pointer :: invAreaCell
 
       real (kind=RKIND), dimension(:,:,:), pointer :: scalar_old, scalar_new, scalar_tend_save
@@ -3816,6 +3836,7 @@ module atm_time_integration
 
       logical :: local_advance_density
 
+
       if (present(advance_density)) then
          local_advance_density = advance_density
       else
@@ -3824,8 +3845,8 @@ module atm_time_integration
 
       call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
 
-      call mpas_pool_get_array_gpu(state, 'scalars', scalar_old, 1)
-      call mpas_pool_get_array_gpu(state, 'scalars', scalar_new, 2)
+      call mpas_pool_get_array_gpu(state, trim(field_name), scalar_old, 1)
+      call mpas_pool_get_array_gpu(state, trim(field_name), scalar_new, 2)
       call mpas_pool_get_array_gpu(state, 'rho_zz', rho_zz_old, 1)
       call mpas_pool_get_array_gpu(state, 'rho_zz', rho_zz_new, 2)
 
@@ -3838,7 +3859,7 @@ module atm_time_integration
       call mpas_pool_get_array_gpu(mesh, 'nEdgesOnCell', nEdgesOnCell)
       call mpas_pool_get_array_gpu(mesh, 'edgesOnCell_sign', edgesOnCell_sign)
       call mpas_pool_get_array_gpu(mesh, 'invAreaCell', invAreaCell)
-      call mpas_pool_get_array_gpu(tend, 'scalars_tend', scalar_tend_save)
+      call mpas_pool_get_array_gpu(tend, trim(field_name)//'_tend', scalar_tend_save)
 
       call mpas_pool_get_array_gpu(mesh, 'fzm', fnm)
       call mpas_pool_get_array_gpu(mesh, 'fzp', fnp)
@@ -3851,7 +3872,7 @@ module atm_time_integration
 
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
-      call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
+      call mpas_pool_get_dimension(state, 'num_'//trim(field_name), num_scalars)
 
       call mpas_pool_get_array_gpu(mesh, 'bdyMaskCell', bdyMaskCell)
       call mpas_pool_get_array_gpu(mesh, 'bdyMaskEdge', bdyMaskEdge)
@@ -4202,14 +4223,16 @@ module atm_time_integration
    !>  to the work routine.
    !
    !-----------------------------------------------------------------------
-   subroutine atm_advance_scalars_mono(block, tend, state, diag, mesh, configs, dt, &
-                                   cellStart, cellEnd, edgeStart, edgeEnd, &
-                                   cellSolveStart, cellSolveEnd, &
-                                   scalar_old, scalar_new, s_max, s_min, wdtn, scale_arr, flux_arr, &
-                                   flux_upwind_tmp, flux_tmp, advance_density, rho_zz_int)
+   subroutine atm_advance_scalars_mono(field_name, block, tend, state, diag, mesh, configs, dt, &
+                                       cellStart, cellEnd, edgeStart, edgeEnd, &
+                                       cellSolveStart, cellSolveEnd, &
+                                       scalar_old, scalar_new, s_max, s_min, wdtn, scale_arr, flux_arr, &
+                                       flux_upwind_tmp, flux_tmp, advance_density, rho_zz_int)
 
       implicit none
 
+      ! Arguments
+      character(len=*), intent(in) :: field_name
       type (block_type), intent(inout), target :: block
       type (mpas_pool_type), intent(in)    :: tend
       type (mpas_pool_type), intent(inout) :: state
@@ -4228,6 +4251,7 @@ module atm_time_integration
       logical, intent(in), optional :: advance_density
       real (kind=RKIND), dimension(:,:), intent(inout), optional :: rho_zz_int
 
+      ! Local variables
       real (kind=RKIND), dimension(:,:,:), pointer :: scalar_tend
       real (kind=RKIND), dimension(:,:), pointer :: uhAvg, rho_zz_old, rho_zz_new, wwAvg
       real (kind=RKIND), dimension(:), pointer :: dvEdge, invAreaCell
@@ -4250,22 +4274,23 @@ module atm_time_integration
       integer, dimension(:), pointer :: nEdgesOnCell
       real (kind=RKIND), pointer :: coef_3rd_order
 
+
       call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
 
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
       call mpas_pool_get_dimension(mesh, 'nCellsSolve', nCellsSolve)
-      call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
+      call mpas_pool_get_dimension(state, 'num_'//trim(field_name), num_scalars)
 
       call mpas_pool_get_array_gpu(diag, 'ruAvg', uhAvg)
       call mpas_pool_get_array_gpu(diag, 'wwAvg', wwAvg)
 
-      call mpas_pool_get_array_gpu(tend, 'scalars_tend', scalar_tend)
+      call mpas_pool_get_array_gpu(tend, trim(field_name)//'_tend', scalar_tend)
 
       call mpas_pool_get_array_gpu(state, 'rho_zz', rho_zz_old, 1)
       call mpas_pool_get_array_gpu(state, 'rho_zz', rho_zz_new, 2)
-      call mpas_pool_get_array_gpu(state, 'scalars', scalars_old, 1)
-      call mpas_pool_get_array_gpu(state, 'scalars', scalars_new, 2)
+      call mpas_pool_get_array_gpu(state, trim(field_name), scalars_old, 1)
+      call mpas_pool_get_array_gpu(state, trim(field_name), scalars_new, 2)
 
       call mpas_pool_get_array_gpu(mesh, 'invAreaCell', invAreaCell)
       call mpas_pool_get_array_gpu(mesh, 'dvEdge', dvEdge)
