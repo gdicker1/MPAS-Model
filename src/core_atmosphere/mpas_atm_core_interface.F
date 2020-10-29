@@ -760,6 +760,11 @@ module atm_core_interface
          scalarsField(i) % isActive = .true.
          scalarsField(i) % isVarArray = .true.
          scalarsField(i) % isPersistent = .true.
+         nullify(scalarsField(i) % prev)
+         nullify(scalarsField(i) % next)
+         nullify(scalarsField(i) % sendList)
+         nullify(scalarsField(i) % recvList)
+         nullify(scalarsField(i) % copyList)
 
          allocate(scalarsField(i) % constituentNames(num_scalars))
 
@@ -805,6 +810,11 @@ module atm_core_interface
          scalarsField(i) % isActive = .true.
          scalarsField(i) % isVarArray = .true.
          scalarsField(i) % isPersistent = .true.
+         nullify(scalarsField(i) % prev)
+         nullify(scalarsField(i) % next)
+         nullify(scalarsField(i) % sendList)
+         nullify(scalarsField(i) % recvList)
+         nullify(scalarsField(i) % copyList)
 
          allocate(scalarsField(i) % constituentNames(num_scalars))
 
