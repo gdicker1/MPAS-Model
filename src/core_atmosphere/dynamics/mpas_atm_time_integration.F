@@ -492,7 +492,7 @@ module atm_time_integration
       real (kind=RKIND), dimension(:,:,:), pointer :: gpu_scalars_1, gpu_scalars_2
       integer, dimension(3) :: gpuArraySize
       ! Local variables for indexing
-      integer :: levelsIdx, scalarsIdx, cellsIdx
+      integer :: levelsIdx, scalarsIdx, cellsIdx, edgesIdx
       integer :: tmpnum_scalars, tmpnCells, tmpnVertLevels, tmpnEdges
       !
       ! Retrieve configuration options
@@ -737,12 +737,22 @@ module atm_time_integration
       end do
       call mpas_timer_stop('physics_get_tend')
 #else
+#ifndef MPAS_CAM_DYCORE
       !
       ! If no physics are being used, simply zero-out the physics tendency fields
       !
-      tend_ru_physics(:,:) = 0.0_RKIND
-      tend_rtheta_physics(:,:) = 0.0_RKIND
-      tend_rho_physics(:,:) = 0.0_RKIND
+      do edgesIdx=1,nEdges+1
+        do levelsIdx=1,nVertLevels
+          tend_ru_physics(levelsIdx,edgesIdx) = 0.0_RKIND
+        end do
+      end do
+      do cellsIdx=1,nCells+1
+        do levelsIdx=1,nVertLevels
+          tend_rtheta_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+          tend_rho_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+        end do
+      end do
+#endif
 #endif
 
       !
