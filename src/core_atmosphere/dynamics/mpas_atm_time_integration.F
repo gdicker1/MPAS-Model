@@ -36,8 +36,7 @@ module atm_time_integration
    integer :: timerid, secs, u_secs
 
    ! Used to store physics tendencies for dynamics variables
-   real (kind=RKIND), allocatable, dimension(:,:) :: tend_ru_physics, tend_rtheta_physics, tend_rho_physics
-!$acc declare create(tend_ru_physics, tend_rtheta_physics, tend_rho_physics)  
+   real (kind=RKIND), dimension(:,:), pointer :: tend_ru_physics, tend_rtheta_physics, tend_rho_physics
    ! Used in physics_get_tend
    real(kind=RKIND),dimension(:,:),allocatable:: tend_th 
 !$acc declare create(tend_th)
@@ -515,6 +514,7 @@ module atm_time_integration
       call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
       call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
       call mpas_pool_get_subpool(domain % blocklist % structs, 'mesh', mesh)
+      call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
 
 
       !
@@ -529,13 +529,15 @@ module atm_time_integration
 
       allocate(qtot(nVertLevels,nCells+1))
 !      qtot(:,nCells+1) = 0.0_RKIND
-      allocate(tend_rtheta_physics(nVertLevels,nCells+1))
-!      tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
-      allocate(tend_rho_physics(nVertLevels,nCells+1))
-!      tend_rho_physics(:,nCells+1) = 0.0_RKIND
-      allocate(tend_ru_physics(nVertLevels,nEdges+1))
-!      tend_ru_physics(:,nEdges+1) = 0.0_RKIND
       allocate(tend_th(nVertLevels,nCellsSolve))
+      qtot(:,nCells+1) = 0.0_RKIND
+
+      call mpas_pool_get_array_gpu(tend_physics, 'tend_rtheta_physics', tend_rtheta_physics)
+      ! tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
+      call mpas_pool_get_array_gpu(tend_physics, 'tend_rho_physics', tend_rho_physics)
+      ! tend_rho_physics(:,nCells+1) = 0.0_RKIND
+      call mpas_pool_get_array_gpu(tend_physics, 'tend_ru_physics', tend_ru_physics)
+      ! tend_ru_physics(:,nEdges+1) = 0.0_RKIND
 
       !
       ! Initialize RK weights
@@ -1625,9 +1627,6 @@ module atm_time_integration
                deallocate(dpdz)
 
       deallocate(qtot)  !  we are finished with these now
-      deallocate(tend_rtheta_physics)
-      deallocate(tend_rho_physics)
-      deallocate(tend_ru_physics)
       deallocate(tend_th)
 
       !
