@@ -157,6 +157,28 @@ module atm_time_integration
       type (field3DReal), pointer :: field_3d_ptr
       integer, pointer :: nCells, nVertLevels
 
+#ifdef MPAS_CAM_DYCORE
+      ! Used in allocating scratch fields for physics tendencies
+      type (mpas_pool_type), pointer :: tend_physics
+      type (field2DReal), pointer :: tend_ru_physicsField, tend_rtheta_physicsField, tend_rho_physicsField
+#endif
+
+
+#ifdef MPAS_CAM_DYCORE
+      nullify(tend_physics)
+      call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
+
+      call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
+      call mpas_allocate_scratch_field(tend_rtheta_physicsField)
+
+      call mpas_pool_get_field(tend_physics, 'tend_rho_physics', tend_rho_physicsField)
+      call mpas_allocate_scratch_field(tend_rho_physicsField)
+
+      call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
+      call mpas_allocate_scratch_field(tend_ru_physicsField)
+#endif
+
+
 
       !
       ! Set up compacted halo info arrays. The exact fields used here do not matter, so long
@@ -310,6 +332,26 @@ module atm_time_integration
 
       type (domain_type), intent(inout) :: domain
 
+#ifdef MPAS_CAM_DYCORE
+      ! Used in allocating scratch fields for physics tendencies
+      type (mpas_pool_type), pointer :: tend_physics
+      type (field2DReal), pointer :: tend_ru_physicsField, tend_rtheta_physicsField, tend_rho_physicsField
+#endif
+
+
+#ifdef MPAS_CAM_DYCORE
+      nullify(tend_physics)
+      call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
+
+      call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
+      call mpas_deallocate_scratch_field(tend_rtheta_physicsField)
+
+      call mpas_pool_get_field(tend_physics, 'tend_rho_physics', tend_rho_physicsField)
+      call mpas_deallocate_scratch_field(tend_rho_physicsField)
+
+      call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
+      call mpas_deallocate_scratch_field(tend_ru_physicsField)
+#endif
 
       !
       ! Free memory used by compacted halo info arrays.
@@ -482,6 +524,11 @@ module atm_time_integration
 
       real (kind=RKIND), dimension(:,:), pointer :: rqvdynten
 
+#ifndef MPAS_CAM_DYCORE
+      ! Used in allocating scratch fields for physics tendencies
+      type (field2DReal), pointer :: tend_ru_physicsField, tend_rtheta_physicsField, tend_rho_physicsField
+#endif
+
       real (kind=RKIND)  :: time_dyn_step
       logical, parameter :: debug = .false.
 
@@ -531,6 +578,17 @@ module atm_time_integration
 !      qtot(:,nCells+1) = 0.0_RKIND
       allocate(tend_th(nVertLevels,nCellsSolve))
       qtot(:,nCells+1) = 0.0_RKIND
+
+#ifndef MPAS_CAM_DYCORE
+      call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
+      call mpas_allocate_scratch_field(tend_rtheta_physicsField)
+
+      call mpas_pool_get_field(tend_physics, 'tend_rho_physics', tend_rho_physicsField)
+      call mpas_allocate_scratch_field(tend_rho_physicsField)
+
+      call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
+      call mpas_allocate_scratch_field(tend_ru_physicsField)
+#endif
 
       call mpas_pool_get_array_gpu(tend_physics, 'tend_rtheta_physics', tend_rtheta_physics)
       ! tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
@@ -1636,6 +1694,13 @@ module atm_time_integration
 
       deallocate(qtot)  !  we are finished with these now
       deallocate(tend_th)
+
+#ifndef MPAS_CAM_DYCORE
+      call mpas_deallocate_scratch_field(tend_rtheta_physicsField)
+      call mpas_deallocate_scratch_field(tend_rho_physicsField)
+      call mpas_deallocate_scratch_field(tend_ru_physicsField)
+#endif
+
 
       !
       !  split transport, at present RK3
