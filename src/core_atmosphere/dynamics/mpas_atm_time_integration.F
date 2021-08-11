@@ -797,6 +797,7 @@ module atm_time_integration
       end do
       call mpas_timer_stop('physics_get_tend')
 #else
+#ifndef MPAS_CAM_DYCORE
       !
       ! If no physics are being used, simply zero-out the physics tendency fields
       !
@@ -804,13 +805,14 @@ module atm_time_integration
         do levelsIdx=1,nVertLevels
           tend_ru_physics(levelsIdx,edgesIdx) = 0.0_RKIND
         end do
-      end do 
+      end do
       do cellsIdx=1,nCells+1
         do levelsIdx=1,nVertLevels
           tend_rtheta_physics(levelsIdx,cellsIdx) = 0.0_RKIND
           tend_rho_physics(levelsIdx,cellsIdx) = 0.0_RKIND
         end do
       end do
+#endif
 #endif
 
       !
