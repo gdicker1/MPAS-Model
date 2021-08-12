@@ -242,8 +242,11 @@ module atm_core
                                domain % blocklist % structs, domain % clock, domain % dminfo)
 
 if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
+      !
+      ! Prepare the dynamics for integration
+      !
       call mpas_atm_dynamics_init(domain)
-end if 
+end if
 
    end function atm_core_init
 
@@ -968,6 +971,13 @@ end if
       clock => domain % clock
       mpas_log_info => domain % logInfo
 
+if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
+      !
+      ! Finalize the dynamics
+      !
+      call mpas_atm_dynamics_finalize(domain)
+end if
+
       call mpas_atm_diag_cleanup()
 
       call mpas_destroy_clock(clock, ierr)
@@ -982,9 +992,6 @@ end if
          end do
 #endif
 
-if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
-      call mpas_atm_dynamics_finalize(domain)
-end if 
 
       !
       ! Finalize threading
