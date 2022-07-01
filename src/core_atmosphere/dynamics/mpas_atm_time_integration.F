@@ -118,7 +118,7 @@ module atm_time_integration
    type (mpas_communication_list), pointer, private :: recvList_c_2_v => null()
 
    type (MPAS_Clock_type), pointer, private :: clock
-   type (block_type), pointer, private :: blocklist
+   type (block_type), pointer, private :: block
 
 
    ! Used for Rayleigh damping on u
@@ -389,7 +389,6 @@ module atm_time_integration
       integer, intent(in) :: itimestep
 
 
-      type (block_type), pointer :: block
       type (MPAS_Time_type) :: currTime
       type (MPAS_TimeInterval_type) :: dtInterval
       character (len=StrKIND), pointer :: xtime
@@ -400,7 +399,7 @@ module atm_time_integration
 
 
       clock => domain % clock
-      blocklist => domain % blocklist
+      block => domain % blocklist
 
       call mpas_pool_get_config(domain % blocklist % configs, 'config_time_integration', config_time_integration)
       call mpas_pool_get_config(domain % blocklist % configs, 'config_apply_lbcs', config_apply_lbcs_ptr)
@@ -417,13 +416,9 @@ module atm_time_integration
       currTime = nowTime + dtInterval
       call mpas_get_time(currTime, dateTimeString=xtime_new)
 
-      block => domain % blocklist
-      do while (associated(block))
          call mpas_pool_get_subpool(block % structs, 'state', state)
          call mpas_pool_get_array(state, 'xtime', xtime, 2)
          xtime = xtime_new
-         block => block % next
-      end do
 
    end subroutine atm_timestep
 
@@ -450,7 +445,6 @@ module atm_time_integration
 
       integer :: thread
       integer :: iCell, k, iEdge
-      type (block_type), pointer :: block
 
       integer, pointer :: nThreads
       integer, dimension(:), pointer :: cellThreadStart, cellThreadEnd
@@ -652,8 +646,6 @@ module atm_time_integration
 
       call mpas_timer_start('atm_rk_integration_setup')
 
-      block => domain % blocklist
-      do while (associated(block))
          call mpas_pool_get_subpool(block % structs, 'state', state)
          call mpas_pool_get_subpool(block % structs, 'diag', diag)
          ! mesh is needed for atm_compute_moist_coefficients
@@ -688,13 +680,9 @@ module atm_time_integration
          end do
 !$OMP END PARALLEL DO
 
-         block => block % next
-      end do
       call mpas_timer_stop('atm_rk_integration_setup')
 
       call mpas_timer_start('atm_compute_moist_coefficients')
-      block => domain % blocklist
-      do while (associated(block))
          call mpas_pool_get_subpool(block % structs, 'state', state)
          call mpas_pool_get_subpool(block % structs, 'diag', diag)
          ! mesh is needed for atm_compute_moist_coefficients
@@ -729,14 +717,10 @@ module atm_time_integration
          end do
 !$OMP END PARALLEL DO
 
-         block => block % next
-      end do
       call mpas_timer_stop('atm_compute_moist_coefficients')
 
 #ifdef DO_PHYSICS
       call mpas_timer_start('physics_get_tend')
-      block => domain % blocklist
-      do while (associated(block))
          call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
          call mpas_pool_get_subpool(block % structs, 'state', state)
          call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -768,8 +752,6 @@ module atm_time_integration
                   gpu_recv_size_c_v, &
                   gpu_compactHaloInfoSize_c_v &
                               )
-         block => block % next
-      end do
       call mpas_timer_stop('physics_get_tend')
 #else
 #ifndef MPAS_CAM_DYCORE
@@ -803,12 +785,8 @@ module atm_time_integration
       ! IAU - Incremental Analysis Update
       !
       if (trim(config_IAU_option) /= 'off') then
-         block => domain % blocklist
-         do while (associated(block))
             call atm_add_tend_anal_incr(block % configs, block % structs, itimestep, dt, &
                                         tend_ru_physics, tend_rtheta_physics, tend_rho_physics)
-            block => block % next
-        end do
       end if
                allocate(delsq_theta(nVertLevels,nCells+1))
                allocate(delsq_w(nVertLevels,nCells+1))
@@ -826,8 +804,6 @@ module atm_time_integration
          !  Compute the coefficients for the vertically implicit solve in the acoustic step.
          !  These coefficients will work for the first acoustic step in all cases.
          call mpas_timer_start('atm_compute_vert_imp_coefs')
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
             call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -857,8 +833,6 @@ module atm_time_integration
                                           edgeSolveThreadStart(thread), edgeSolveThreadEnd(thread))
             end do
 !$OMP END PARALLEL DO
-            block => block % next
-         end do
          call mpas_timer_stop('atm_compute_vert_imp_coefs')
 
          call mpas_pool_get_array_gpu(diag,'exner',gpu_exner)
@@ -881,8 +855,6 @@ module atm_time_integration
 
               !  Compute the coefficients for the vertically implicit solve in the acoustic step.
               !  These coefficients will work for the 2nd and 3rd acoustic steps (dt is the same for both).
-              block => domain % blocklist
-              do while (associated(block))
                  call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                  call mpas_pool_get_subpool(block % structs, 'state', state)
                  call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -911,13 +883,9 @@ module atm_time_integration
                                                      edgeSolveThreadStart(thread), edgeSolveThreadEnd(thread))
                  end do
 !$OMP END PARALLEL DO
-                 block => block % next
-              end do
             end if  
 
             call mpas_timer_start('atm_compute_dyn_tend')
-            block => domain % blocklist
-            do while (associated(block))
                call mpas_pool_get_subpool(block % structs, 'state', state)
                call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -976,8 +944,6 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
    
-               block => block % next
-            end do
             call mpas_timer_stop('atm_compute_dyn_tend')
 
 
@@ -1000,8 +966,6 @@ module atm_time_integration
 
             call mpas_timer_start('small_step_prep')
 
-            block => domain % blocklist
-            do while (associated(block))
                call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                call mpas_pool_get_subpool(block % structs, 'state', state)
                call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -1030,8 +994,6 @@ module atm_time_integration
                                              edgeSolveThreadStart(thread), edgeSolveThreadEnd(thread))
                end do
 !$OMP END PARALLEL DO
-               block => block % next
-            end do
             call mpas_timer_stop('small_step_prep')
 
           
@@ -1039,8 +1001,6 @@ module atm_time_integration
 
             if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS dry dynamics in the specified zone
 
-               block => domain % blocklist
-               do while (associated(block))
 
                   call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                   call mpas_pool_get_subpool(block % structs, 'tend', tend)
@@ -1080,13 +1040,9 @@ module atm_time_integration
                   deallocate(ru_driving_tend)
                   deallocate(rt_driving_tend)
                   deallocate(rho_driving_tend)
-                  block => block % next
-               end do
 
 ! -------- next, add in the tendencies for the horizontal filters and Rayleigh damping.  We will keep the spec zone and relax zone adjustments separate for now...
                
-               block => domain % blocklist
-               do while (associated(block))
                   call mpas_pool_get_subpool(block % structs, 'state', state)
                   call mpas_pool_get_subpool(block % structs, 'diag', diag)
                   call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -1130,8 +1086,6 @@ module atm_time_integration
                   deallocate(ru_driving_values)
                   deallocate(rt_driving_values)
                   deallocate(rho_driving_values)
-                  block => block % next
-               end do
 
 
             end if  ! regional_MPAS addition
@@ -1155,8 +1109,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_v, gpuArraySize(1), gpuArraySize(2))
 
                call mpas_timer_start('atm_advance_acoustic_step')
-               block => domain % blocklist
-               do while (associated(block))
                   call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                   call mpas_pool_get_subpool(block % structs, 'state', state)
                   call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -1195,8 +1147,6 @@ module atm_time_integration
                   end do
 !$OMP END PARALLEL DO
 
-                  block => block % next
-               end do
                call mpas_timer_stop('atm_advance_acoustic_step')
 
   
@@ -1217,8 +1167,6 @@ module atm_time_integration
 !  the end of the acoustic step
 
                call mpas_timer_start('atm_divergence_damping_3d')
-               block => domain % blocklist
-               do while (associated(block))
                   call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                   call mpas_pool_get_subpool(block % structs, 'state', state)
                   call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -1234,8 +1182,6 @@ module atm_time_integration
                   end do
 !$OMP END PARALLEL DO
 
-                  block => block % next
-               end do
                call mpas_timer_stop('atm_divergence_damping_3d')
 
             end do  ! end of acoustic steps loop
@@ -1279,8 +1225,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_v, gpuArraySize(1), gpuArraySize(2))
 
             call mpas_timer_start('atm_recover_large_step_variables')
-            block => domain % blocklist
-            do while (associated(block))
 
                call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                call mpas_pool_get_subpool(block % structs, 'state', state)
@@ -1317,8 +1261,6 @@ module atm_time_integration
                end do
 !$OMP END PARALLEL DO
 
-               block => block % next
-            end do
             call mpas_timer_stop('atm_recover_large_step_variables')
 
 !-------------------------------------------------------------------
@@ -1328,8 +1270,6 @@ module atm_time_integration
                ! First, (re)set the value of u and ru in the specified zone at the outermost edge (we will reset all for now).
                ! atm_recover_large_step_variables will not have set outermost edge velocities correctly.
                
-               block => domain % blocklist
-               do while (associated(block))
 
                   call mpas_pool_get_subpool(block % structs, 'state', state)
                   call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -1365,8 +1305,6 @@ module atm_time_integration
                      end if
                   end do
                   
-                  block => block % next
-               end do
                deallocate(ru_driving_values)
 
             end if  ! regional_MPAS addition
@@ -1399,8 +1337,6 @@ module atm_time_integration
                   call mpas_pool_get_field(state, 'scalars', scalars_field, 2)  ! need to fill halo for horizontal filter
                   call mpas_dmpar_exch_halo_field(scalars_field)
 
-                  block => domain % blocklist
-                  do while (associated(block))
 
                      call mpas_pool_get_subpool(block % structs, 'state', state)
                      call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -1465,16 +1401,12 @@ module atm_time_integration
 
                      deallocate(scalars_driving)
 
-                     block => block % next
-                  end do
 
                end if  ! regional_MPAS addition
 
             end if
 
             call mpas_timer_start('atm_compute_solve_diagnostics')
-            block => domain % blocklist
-            do while (associated(block))
                call mpas_pool_get_subpool(block % structs, 'state', state)
                call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -1505,8 +1437,6 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
 
-               block => block % next
-            end do
             call mpas_timer_stop('atm_compute_solve_diagnostics')
 
 
@@ -1557,8 +1487,6 @@ module atm_time_integration
             ! set the zero-gradient condition on w for regional_MPAS
             
             if ( config_apply_lbcs ) then  ! regional_MPAS addition
-              block => domain % blocklist
-              do while (associated(block))
 
                 call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
                 call mpas_pool_get_subpool(block % structs, 'state', state)
@@ -1573,8 +1501,6 @@ module atm_time_integration
                 end do
 !$OMP END PARALLEL DO
 
-                block => block % next
-              end do
 
               ! w halo values needs resetting after regional boundary update
               call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
@@ -1627,8 +1553,6 @@ module atm_time_integration
          !  Notes:  physics tendencies for scalars should be OK coming out of dynamics
 
          call mpas_timer_start('atm_rk_dynamics_substep_finish')
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_subpool(block % structs, 'diag', diag)
 
@@ -1661,8 +1585,6 @@ module atm_time_integration
             end do
 !$OMP END PARALLEL DO
 
-            block => block % next
-         end do
          call mpas_timer_stop('atm_rk_dynamics_substep_finish')
 
       end do DYNAMICS_SUBSTEPS
@@ -1705,8 +1627,6 @@ module atm_time_integration
                call mpas_pool_get_field(state, 'scalars', scalars_field, 2)  ! need to fill halo for horizontal filter
                call mpas_dmpar_exch_halo_field(scalars_field)
 
-               block => domain % blocklist
-               do while (associated(block))
 
                   call mpas_pool_get_subpool(block % structs, 'state', state)
                   call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -1771,8 +1691,6 @@ module atm_time_integration
 
                   deallocate(scalars_driving)
 
-                  block => block % next
-               end do
 
             end if  ! regional_MPAS addition
 
@@ -1804,8 +1722,6 @@ module atm_time_integration
       ! reconstruct full velocity vectors at cell centers:
       !
       call mpas_timer_start('atm_rk_reconstruct')
-      block => domain % blocklist
-      do while (associated(block))
          call mpas_pool_get_subpool(block % structs, 'state', state)
          call mpas_pool_get_subpool(block % structs, 'diag', diag)
          call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -1828,8 +1744,6 @@ module atm_time_integration
                                uReconstructMeridional  &
                               )
 
-         block => block % next
-      end do
       call mpas_timer_stop('atm_rk_reconstruct')
 
       !
@@ -1838,8 +1752,6 @@ module atm_time_integration
       !
 
 #ifdef DO_PHYSICS
-      block => domain % blocklist
-      do while(associated(block))
 
          call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
          call mpas_pool_get_subpool(block % structs, 'state', state)
@@ -1924,8 +1836,6 @@ module atm_time_integration
 !$OMP END PARALLEL DO
             call mpas_timer_stop('microphysics')
          end if
-         block => block % next
-      end do
 
       !
       ! Note: A halo exchange for 'exner' here as well as at the end of
@@ -1938,8 +1848,6 @@ module atm_time_integration
 
       if (config_apply_lbcs) then  ! reset boundary values of rtheta in the specified zone - microphysics has messed with them
 
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_subpool(block % structs, 'diag', diag)
             call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -1971,9 +1879,6 @@ module atm_time_integration
 
             deallocate(rt_driving_values)
             deallocate(rho_driving_values)
-            block => block % next
-
-         end do
 
       end if  ! regional_MPAS addition
 
@@ -1983,8 +1888,6 @@ module atm_time_integration
          call mpas_pool_get_field(state, 'scalars', scalars_field, 2)  ! need to fill halo for horizontal filter
          call mpas_dmpar_exch_halo_field(scalars_field)
 
-         block => domain % blocklist
-         do while (associated(block))
 
             call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -2053,8 +1956,6 @@ module atm_time_integration
 
             deallocate(scalars_driving)
 
-            block => block % next
-         end do
 
       end if  ! regional_MPAS addition
 
@@ -2118,8 +2019,6 @@ module atm_time_integration
       type (mpas_pool_type), pointer :: diag
       type (mpas_pool_type), pointer :: mesh
 
-      type (block_type), pointer :: block
-
       integer, pointer :: nCells
       integer, pointer :: nEdges
       integer, pointer :: nVertLevels
@@ -2144,8 +2043,6 @@ module atm_time_integration
          call mpas_timer_start('atm_advance_scalars_mono')
       end if
 
-      block => domain % blocklist
-      do while (associated(block))
          call mpas_pool_get_subpool(block % structs, 'tend', tend)
          call mpas_pool_get_subpool(block % structs, 'state', state)
          call mpas_pool_get_subpool(block % structs, 'diag', diag)
@@ -2277,8 +2174,6 @@ module atm_time_integration
             deallocate(flux_tmp_arr)
          end if
 
-         block => block % next
-      end do
 
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
          call mpas_timer_stop('atm_advance_scalars')
@@ -8942,8 +8837,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
        logical, pointer :: config_print_detailed_minmax_vel
        logical, pointer :: config_print_global_minmax_sca
 
-       type (block_type), pointer :: block
-
        integer :: iCell, k, iEdge, iScalar
        integer, pointer :: num_scalars, nCellsSolve, nEdgesSolve, nVertLevels
 
@@ -8977,8 +8870,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
       if (config_print_detailed_minmax_vel) then
          call mpas_log_write('')
 
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_subpool(block % structs, 'diag', diag)
             call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -9194,14 +9085,10 @@ if (config_horiz_mixing == "2d_smagorinsky") then
             end do
             end do
 
-            block => block % next
-         end do
 
       else if (config_print_global_minmax_vel) then
          call mpas_log_write('')
 
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
 
             call mpas_pool_get_array(state, 'w', w, 2)
@@ -9234,8 +9121,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
             call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
             call mpas_log_write('global min, max u $r $r',realArgs=(/global_scalar_min, global_scalar_max/))
 
-            block => block % next
-         end do
       end if
 
       if (config_print_global_minmax_sca) then
@@ -9243,8 +9128,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
             call mpas_log_write('')
          end if
 
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
 
             call mpas_pool_get_array(state, 'scalars', scalars, 2)
@@ -9266,8 +9149,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
                call mpas_log_write(' global min, max scalar $i $r $r',intArgs=(/iScalar/), realArgs=(/global_scalar_min, global_scalar_max/))
             end do
 
-            block => block % next
-         end do
       end if
 
    end subroutine summarize_timestep
