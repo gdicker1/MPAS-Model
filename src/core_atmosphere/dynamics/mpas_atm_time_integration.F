@@ -401,8 +401,8 @@ module atm_time_integration
       clock => domain % clock
       block => domain % blocklist
 
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_time_integration', config_time_integration)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_apply_lbcs', config_apply_lbcs_ptr)
+      call mpas_pool_get_config(block % configs, 'config_time_integration', config_time_integration)
+      call mpas_pool_get_config(block % configs, 'config_apply_lbcs', config_apply_lbcs_ptr)
       config_apply_lbcs = config_apply_lbcs_ptr
 
       if (trim(config_time_integration) == 'SRK3') then
@@ -525,25 +525,25 @@ module atm_time_integration
       !
       ! Retrieve configuration options
       !
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_number_of_sub_steps', config_number_of_sub_steps)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_time_integration_order', config_time_integration_order)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_scalar_advection', config_scalar_advection)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_positive_definite', config_positive_definite)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_monotonic', config_monotonic)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_dt', config_dt)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_IAU_option', config_IAU_option)
+      call mpas_pool_get_config(block % configs, 'config_number_of_sub_steps', config_number_of_sub_steps)
+      call mpas_pool_get_config(block % configs, 'config_time_integration_order', config_time_integration_order)
+      call mpas_pool_get_config(block % configs, 'config_scalar_advection', config_scalar_advection)
+      call mpas_pool_get_config(block % configs, 'config_positive_definite', config_positive_definite)
+      call mpas_pool_get_config(block % configs, 'config_monotonic', config_monotonic)
+      call mpas_pool_get_config(block % configs, 'config_dt', config_dt)
+      call mpas_pool_get_config(block % configs, 'config_IAU_option', config_IAU_option)
 
       !  config variables for dynamics-transport splitting, WCS 18 November 2014
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_split_dynamics_transport', config_split_dynamics_transport)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_dynamics_split_steps', config_dynamics_split)
+      call mpas_pool_get_config(block % configs, 'config_split_dynamics_transport', config_split_dynamics_transport)
+      call mpas_pool_get_config(block % configs, 'config_dynamics_split_steps', config_dynamics_split)
 
       !
       ! Retrieve field structures
       !
-      call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
-      call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
-      call mpas_pool_get_subpool(domain % blocklist % structs, 'mesh', mesh)
-      call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
+      call mpas_pool_get_subpool(block % structs, 'state', state)
+      call mpas_pool_get_subpool(block % structs, 'diag', diag)
+      call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
+      call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
 
 
       !
@@ -954,7 +954,7 @@ module atm_time_integration
             !***********************************
 
 ! tend_u
-            call mpas_pool_get_subpool(domain % blocklist % structs, 'tend', tend)
+            call mpas_pool_get_subpool(block % structs, 'tend', tend)
             call mpas_pool_get_array_gpu(tend,'u',gpu_tend_u)
 !MGD FIX LATER            call mpas_dmpar_exch_halo_acc(gpu_tend_u, compactHaloInfo_e_v, (/ 1 /))
             gpuArraySize(1) = size(gpu_tend_u,1)
@@ -1023,9 +1023,9 @@ module atm_time_integration
                   allocate(ru_driving_tend(nVertLevels,nEdges+1))
                   allocate(rt_driving_tend(nVertLevels,nCells+1))
                   allocate(rho_driving_tend(nVertLevels,nCells+1))
-                  ru_driving_tend(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_tend( clock, domain % blocklist, nVertLevels, nEdges, 'ru', 0.0_RKIND )
-                  rt_driving_tend(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_tend( clock, domain % blocklist, nVertLevels, nCells, 'rtheta_m', 0.0_RKIND )
-                  rho_driving_tend(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_tend( clock, domain % blocklist, nVertLevels, nCells, 'rho_zz', 0.0_RKIND )
+                  ru_driving_tend(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_tend( clock, block, nVertLevels, nEdges, 'ru', 0.0_RKIND )
+                  rt_driving_tend(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_tend( clock, block, nVertLevels, nCells, 'rtheta_m', 0.0_RKIND )
+                  rho_driving_tend(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_tend( clock, block, nVertLevels, nCells, 'rho_zz', 0.0_RKIND )
 !$OMP PARALLEL DO
                   do thread=1,nThreads
                      call atm_bdy_adjust_dynamics_speczone_tend( tend, mesh, block % configs, nVertLevels,                 &
@@ -1068,9 +1068,9 @@ module atm_time_integration
                   allocate(rho_driving_values(nVertLevels,nCells+1))
 
                   time_dyn_step = dt_dynamics*real(dynamics_substep-1) + rk_timestep(rk_step)
-                  ru_driving_values(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nEdges, 'ru', time_dyn_step )
-                  rt_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'rtheta_m', time_dyn_step )
-                  rho_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'rho_zz', time_dyn_step )
+                  ru_driving_values(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nEdges, 'ru', time_dyn_step )
+                  rt_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'rtheta_m', time_dyn_step )
+                  rho_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'rho_zz', time_dyn_step )
 
 !$OMP PARALLEL DO
                   do thread=1,nThreads
@@ -1098,7 +1098,7 @@ module atm_time_integration
 
             do small_step = 1, number_sub_steps(rk_step)
 
-               call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
+               call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_array_gpu(diag, 'rho_pp',gpu_rho_pp)
 !MGD FIX LATER               call mpas_dmpar_exch_halo_acc(gpu_rho_pp, compactHaloInfo_c_v, (/ 1 /))
                gpuArraySize(1) = size(gpu_rho_pp,1)
@@ -1153,7 +1153,7 @@ module atm_time_integration
 ! rtheta_pp
 ! This is the only communications needed during the acoustic steps because we solve for u on all edges of owned cells
 
-               call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
+               call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_array_gpu(diag,'rtheta_pp',gpu_rtheta_pp)
 !MGD FIX LATER               call mpas_dmpar_exch_halo_acc(gpu_rtheta_pp, compactHaloInfo_c_v, (/ 1 /))
                gpuArraySize(1) = size(gpu_rtheta_pp,1)
@@ -1186,7 +1186,7 @@ module atm_time_integration
 
             end do  ! end of acoustic steps loop
 
-            call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
+            call mpas_pool_get_subpool(block % structs, 'diag', diag)
 
             !CR: SMALLER STENCIL?: call mpas_dmpar_exch_halo_field(block % diag % rw_p, (/ 1 /))
             call mpas_pool_get_array_gpu(diag,'rw_p',gpu_rw_p)
@@ -1284,7 +1284,7 @@ module atm_time_integration
 
                   time_dyn_step = dt_dynamics*real(dynamics_substep-1) + rk_timestep(rk_step)
 
-                  ru_driving_values(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nEdges, 'u', time_dyn_step )
+                  ru_driving_values(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nEdges, 'u', time_dyn_step )
                   ! do this inline at present - it is simple enough
                   do iEdge = 1, nEdgesSolve
                      if(bdyMaskEdge(iEdge) > nRelaxZone) then
@@ -1294,7 +1294,7 @@ module atm_time_integration
                      end if
                   end do
 
-                  ru_driving_values(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nEdges, 'ru', time_dyn_step )
+                  ru_driving_values(1:nVertLevels,1:nEdges+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nEdges, 'ru', time_dyn_step )
                   call mpas_pool_get_array(diag, 'ru', u)
                   ! do this inline at present - it is simple enough
                   do iEdge = 1, nEdges
@@ -1312,7 +1312,7 @@ module atm_time_integration
 !-------------------------------------------------------------------
             
             ! u
-            call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
+            call mpas_pool_get_subpool(block % structs, 'state', state)
 
             call mpas_pool_get_array_gpu(state, 'u',gpu_u_2, 2)
             gpuArraySize(1) = size(gpu_u_2,1)
@@ -1367,28 +1367,28 @@ module atm_time_integration
                      call mpas_pool_get_dimension(block % dimensions, 'cellSolveThreadEnd', cellSolveThreadEnd)
 
                      if (index_qv > 0) then
-                        scalars_driving(index_qv,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qv', rk_timestep(rk_step) )
+                        scalars_driving(index_qv,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qv', rk_timestep(rk_step) )
                      end if
                      if (index_qc > 0) then
-                        scalars_driving(index_qc,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qc', rk_timestep(rk_step) )
+                        scalars_driving(index_qc,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qc', rk_timestep(rk_step) )
                      end if
                      if (index_qr > 0) then
-                        scalars_driving(index_qr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qr', rk_timestep(rk_step) )
+                        scalars_driving(index_qr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qr', rk_timestep(rk_step) )
                      end if
                      if (index_qi > 0) then
-                        scalars_driving(index_qi,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qi', rk_timestep(rk_step) )
+                        scalars_driving(index_qi,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qi', rk_timestep(rk_step) )
                      end if
                      if (index_qs > 0) then
-                        scalars_driving(index_qs,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qs', rk_timestep(rk_step) )
+                        scalars_driving(index_qs,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qs', rk_timestep(rk_step) )
                      end if
                      if (index_qg > 0) then
-                        scalars_driving(index_qg,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qg', rk_timestep(rk_step) )
+                        scalars_driving(index_qg,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qg', rk_timestep(rk_step) )
                      end if
                      if (index_nr > 0) then
-                        scalars_driving(index_nr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'nr', rk_timestep(rk_step) )
+                        scalars_driving(index_nr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'nr', rk_timestep(rk_step) )
                      end if
                      if (index_ni > 0) then
-                        scalars_driving(index_ni,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'ni', rk_timestep(rk_step) )
+                        scalars_driving(index_ni,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'ni', rk_timestep(rk_step) )
                      end if
                   
                      !$OMP PARALLEL DO
@@ -1440,7 +1440,7 @@ module atm_time_integration
             call mpas_timer_stop('atm_compute_solve_diagnostics')
 
 
-            call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
+            call mpas_pool_get_subpool(block % structs, 'state', state)
 
             ! w
             call mpas_pool_get_array_gpu(state, 'w', gpu_w_2, 2)
@@ -1452,7 +1452,7 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_vP1, gpuArraySize(1), gpuArraySize(2))
 
             ! pv_edge
-            call mpas_pool_get_subpool(domain % blocklist % structs, 'diag', diag)
+            call mpas_pool_get_subpool(block % structs, 'diag', diag)
             call mpas_pool_get_array_gpu(diag, 'pv_edge', gpu_pv_edge)
             gpuArraySize(1) = size(gpu_pv_edge,1)
             gpuArraySize(2) = size(gpu_pv_edge,2)
@@ -1503,7 +1503,7 @@ module atm_time_integration
 
 
               ! w halo values needs resetting after regional boundary update
-              call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
+              call mpas_pool_get_subpool(block % structs, 'state', state)
               call mpas_pool_get_field(state, 'w', w_field, 2)
               call mpas_dmpar_exch_halo_field(w_field)
 
@@ -1512,7 +1512,7 @@ module atm_time_integration
          end do RK3_DYNAMICS
 
          if (dynamics_substep < dynamics_split) then
-            call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
+            call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_array_gpu(state, 'theta_m', gpu_theta_m_2, 2)
             gpuArraySize(1) = size(gpu_theta_m_2,1)
             gpuArraySize(2) = size(gpu_theta_m_2,2)
@@ -1657,28 +1657,28 @@ module atm_time_integration
                   call mpas_pool_get_dimension(block % dimensions, 'cellSolveThreadEnd', cellSolveThreadEnd)
 
                   if (index_qv > 0) then
-                     scalars_driving(index_qv,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qv', rk_timestep(rk_step) )
+                     scalars_driving(index_qv,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qv', rk_timestep(rk_step) )
                   end if
                   if (index_qc > 0) then
-                     scalars_driving(index_qc,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qc', rk_timestep(rk_step) )
+                     scalars_driving(index_qc,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qc', rk_timestep(rk_step) )
                   end if
                   if (index_qr > 0) then
-                     scalars_driving(index_qr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qr', rk_timestep(rk_step) )
+                     scalars_driving(index_qr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qr', rk_timestep(rk_step) )
                   end if
                   if (index_qi > 0) then
-                     scalars_driving(index_qi,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qi', rk_timestep(rk_step) )
+                     scalars_driving(index_qi,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qi', rk_timestep(rk_step) )
                   end if
                   if (index_qs > 0) then
-                     scalars_driving(index_qs,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qs', rk_timestep(rk_step) )
+                     scalars_driving(index_qs,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qs', rk_timestep(rk_step) )
                   end if
                   if (index_qg > 0) then
-                     scalars_driving(index_qg,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qg', rk_timestep(rk_step) )
+                     scalars_driving(index_qg,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qg', rk_timestep(rk_step) )
                   end if
                   if (index_nr > 0) then
-                     scalars_driving(index_nr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'nr', rk_timestep(rk_step) )
+                     scalars_driving(index_nr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'nr', rk_timestep(rk_step) )
                   end if
                   if (index_ni > 0) then
-                     scalars_driving(index_ni,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'ni', rk_timestep(rk_step) )
+                     scalars_driving(index_ni,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'ni', rk_timestep(rk_step) )
                   end if
                   
 !$OMP PARALLEL DO
@@ -1865,8 +1865,8 @@ module atm_time_integration
             allocate(rho_driving_values(nVertLevels,nCells+1))
             time_dyn_step = dt  ! end of full timestep values
 
-            rt_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'rtheta_m', time_dyn_step )
-            rho_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'rho_zz', time_dyn_step )
+            rt_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'rtheta_m', time_dyn_step )
+            rho_driving_values(1:nVertLevels,1:nCells+1) =  mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'rho_zz', time_dyn_step )
 
 !$OMP PARALLEL DO
             do thread=1,nThreads
@@ -1922,28 +1922,28 @@ module atm_time_integration
             call mpas_pool_get_dimension(block % dimensions, 'vertexSolveThreadEnd', vertexSolveThreadEnd)
 
             if (index_qv > 0) then
-               scalars_driving(index_qv,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qv', dt )
+               scalars_driving(index_qv,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qv', dt )
             end if
             if (index_qc > 0) then
-               scalars_driving(index_qc,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qc', dt )
+               scalars_driving(index_qc,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qc', dt )
             end if
             if (index_qr > 0) then
-               scalars_driving(index_qr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qr', dt )
+               scalars_driving(index_qr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qr', dt )
             end if
             if (index_qi > 0) then
-               scalars_driving(index_qi,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qi', dt )
+               scalars_driving(index_qi,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qi', dt )
             end if
             if (index_qs > 0) then
-               scalars_driving(index_qs,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qs', dt )
+               scalars_driving(index_qs,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qs', dt )
             end if
             if (index_qg > 0) then
-               scalars_driving(index_qg,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'qg', dt )
+               scalars_driving(index_qg,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'qg', dt )
             end if
             if (index_nr > 0) then
-               scalars_driving(index_nr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'nr', dt )
+               scalars_driving(index_nr,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'nr', dt )
             end if
             if (index_ni > 0) then
-               scalars_driving(index_ni,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, domain % blocklist, nVertLevels, nCells, 'ni', dt )
+               scalars_driving(index_ni,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'ni', dt )
             end if
       
 !$OMP PARALLEL DO
@@ -8863,9 +8863,9 @@ if (config_horiz_mixing == "2d_smagorinsky") then
        real (kind=RKIND), dimension(:,:), pointer :: u, v, uReconstructZonal, uReconstructMeridional, uReconstructX, uReconstructY, uReconstructZ
        real (kind=RKIND), dimension(:,:,:), pointer :: scalars, scalars_1, scalars_2
 
-       call mpas_pool_get_config(domain % blocklist % configs, 'config_print_global_minmax_vel', config_print_global_minmax_vel)
-       call mpas_pool_get_config(domain % blocklist % configs, 'config_print_detailed_minmax_vel', config_print_detailed_minmax_vel)
-       call mpas_pool_get_config(domain % blocklist % configs, 'config_print_global_minmax_sca', config_print_global_minmax_sca)
+       call mpas_pool_get_config(block % configs, 'config_print_global_minmax_vel', config_print_global_minmax_vel)
+       call mpas_pool_get_config(block % configs, 'config_print_detailed_minmax_vel', config_print_detailed_minmax_vel)
+       call mpas_pool_get_config(block % configs, 'config_print_global_minmax_sca', config_print_global_minmax_sca)
 
       if (config_print_detailed_minmax_vel) then
          call mpas_log_write('')
