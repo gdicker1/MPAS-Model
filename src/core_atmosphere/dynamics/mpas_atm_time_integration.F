@@ -545,9 +545,13 @@ module atm_time_integration
       ! Retrieve field structures
       !
       call mpas_pool_get_subpool(block % structs, 'state', state)
-      call mpas_pool_get_subpool(block % structs, 'diag', diag)
       call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
+      call mpas_pool_get_subpool(block % structs, 'diag', diag)
+      call mpas_pool_get_subpool(block % structs, 'tend', tend)
       call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
+#ifdef DO_PHYSICS
+      call mpas_pool_get_subpool(block % structs, 'diag_physics', diag_physics)
+#endif
 
 
       !
@@ -649,12 +653,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_v, gpuArraySize(1), gpuArraySize(2))
 
       call mpas_timer_start('atm_rk_integration_setup')
-
-      call mpas_pool_get_subpool(block % structs, 'state', state)
-      call mpas_pool_get_subpool(block % structs, 'diag', diag)
-      ! mesh is needed for atm_compute_moist_coefficients
-      call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-
       call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
 
       call mpas_pool_get_dimension(block % dimensions, 'cellThreadStart', cellThreadStart)
@@ -687,11 +685,6 @@ module atm_time_integration
       call mpas_timer_stop('atm_rk_integration_setup')
 
       call mpas_timer_start('atm_compute_moist_coefficients')
-      call mpas_pool_get_subpool(block % structs, 'state', state)
-      call mpas_pool_get_subpool(block % structs, 'diag', diag)
-      ! mesh is needed for atm_compute_moist_coefficients
-      call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-
       call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
 
       call mpas_pool_get_dimension(block % dimensions, 'cellThreadStart', cellThreadStart)
@@ -725,11 +718,6 @@ module atm_time_integration
 
 #ifdef DO_PHYSICS
       call mpas_timer_start('physics_get_tend')
-      call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-      call mpas_pool_get_subpool(block % structs, 'state', state)
-      call mpas_pool_get_subpool(block % structs, 'diag', diag)
-      call mpas_pool_get_subpool(block % structs, 'tend', tend)
-      call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
       rk_step = 1
       dynamics_substep = 1
       call physics_get_tend( block, &
@@ -808,10 +796,6 @@ module atm_time_integration
          !  Compute the coefficients for the vertically implicit solve in the acoustic step.
          !  These coefficients will work for the first acoustic step in all cases.
          call mpas_timer_start('atm_compute_vert_imp_coefs')
-         call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-         call mpas_pool_get_subpool(block % structs, 'state', state)
-         call mpas_pool_get_subpool(block % structs, 'diag', diag)
-         call mpas_pool_get_subpool(block % structs, 'tend', tend)
 
          call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
 
@@ -859,11 +843,6 @@ module atm_time_integration
 
               !  Compute the coefficients for the vertically implicit solve in the acoustic step.
               !  These coefficients will work for the 2nd and 3rd acoustic steps (dt is the same for both).
-              call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-              call mpas_pool_get_subpool(block % structs, 'state', state)
-              call mpas_pool_get_subpool(block % structs, 'diag', diag)
-              call mpas_pool_get_subpool(block % structs, 'tend', tend)
-   
               call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
 
               call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
@@ -890,13 +869,6 @@ module atm_time_integration
             end if  
 
             call mpas_timer_start('atm_compute_dyn_tend')
-            call mpas_pool_get_subpool(block % structs, 'state', state)
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
-            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-            call mpas_pool_get_subpool(block % structs, 'tend', tend)
-#ifdef DO_PHYSICS
-            call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
-#endif
    
             call mpas_pool_get_dimension(mesh, 'nCells', nCells)
             call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
@@ -958,7 +930,6 @@ module atm_time_integration
             !***********************************
 
 ! tend_u
-            call mpas_pool_get_subpool(block % structs, 'tend', tend)
             call mpas_pool_get_array_gpu(tend,'u',gpu_tend_u)
 !MGD FIX LATER            call mpas_dmpar_exch_halo_acc(gpu_tend_u, compactHaloInfo_e_v, (/ 1 /))
             gpuArraySize(1) = size(gpu_tend_u,1)
@@ -969,11 +940,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_e_v, gpuArraySize(1), gpuArraySize(2))
 
             call mpas_timer_start('small_step_prep')
-
-            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-            call mpas_pool_get_subpool(block % structs, 'state', state)
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
-            call mpas_pool_get_subpool(block % structs, 'tend', tend)
    
             call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
 
@@ -1004,10 +970,6 @@ module atm_time_integration
 !------------------------------------------------------------------------------------------------------------------------
 
             if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS dry dynamics in the specified zone
-
-
-               call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-               call mpas_pool_get_subpool(block % structs, 'tend', tend)
    
                call mpas_pool_get_dimension(mesh, 'nCells', nCells)
                call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
@@ -1046,11 +1008,6 @@ module atm_time_integration
                deallocate(rho_driving_tend)
 
 ! -------- next, add in the tendencies for the horizontal filters and Rayleigh damping.  We will keep the spec zone and relax zone adjustments separate for now...
-               
-               call mpas_pool_get_subpool(block % structs, 'state', state)
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
-               call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-               call mpas_pool_get_subpool(block % structs, 'tend', tend)
    
                call mpas_pool_get_dimension(mesh, 'nCells', nCells)
                call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
@@ -1102,7 +1059,6 @@ module atm_time_integration
 
             do small_step = 1, number_sub_steps(rk_step)
 
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_array_gpu(diag, 'rho_pp',gpu_rho_pp)
 !MGD FIX LATER               call mpas_dmpar_exch_halo_acc(gpu_rho_pp, compactHaloInfo_c_v, (/ 1 /))
                gpuArraySize(1) = size(gpu_rho_pp,1)
@@ -1113,11 +1069,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_v, gpuArraySize(1), gpuArraySize(2))
 
                call mpas_timer_start('atm_advance_acoustic_step')
-               call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-               call mpas_pool_get_subpool(block % structs, 'state', state)
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
-               call mpas_pool_get_subpool(block % structs, 'tend', tend)
-
                call mpas_pool_get_dimension(mesh, 'nCells', nCells)
                call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
 
@@ -1157,7 +1108,6 @@ module atm_time_integration
 ! rtheta_pp
 ! This is the only communications needed during the acoustic steps because we solve for u on all edges of owned cells
 
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_array_gpu(diag,'rtheta_pp',gpu_rtheta_pp)
 !MGD FIX LATER               call mpas_dmpar_exch_halo_acc(gpu_rtheta_pp, compactHaloInfo_c_v, (/ 1 /))
                gpuArraySize(1) = size(gpu_rtheta_pp,1)
@@ -1171,10 +1121,6 @@ module atm_time_integration
 !  the end of the acoustic step
 
                call mpas_timer_start('atm_divergence_damping_3d')
-               call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-               call mpas_pool_get_subpool(block % structs, 'state', state)
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
-
                call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
                call mpas_pool_get_dimension(block % dimensions, 'edgeThreadStart', edgeThreadStart)
                call mpas_pool_get_dimension(block % dimensions, 'edgeThreadEnd', edgeThreadEnd)
@@ -1190,7 +1136,6 @@ module atm_time_integration
 
             end do  ! end of acoustic steps loop
 
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
 
             !CR: SMALLER STENCIL?: call mpas_dmpar_exch_halo_field(block % diag % rw_p, (/ 1 /))
             call mpas_pool_get_array_gpu(diag,'rw_p',gpu_rw_p)
@@ -1229,12 +1174,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_v, gpuArraySize(1), gpuArraySize(2))
 
             call mpas_timer_start('atm_recover_large_step_variables')
-
-            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-            call mpas_pool_get_subpool(block % structs, 'state', state)
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
-            call mpas_pool_get_subpool(block % structs, 'tend', tend)
-
             call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
 
             call mpas_pool_get_dimension(block % dimensions, 'cellThreadStart', cellThreadStart)
@@ -1273,11 +1212,6 @@ module atm_time_integration
 
                ! First, (re)set the value of u and ru in the specified zone at the outermost edge (we will reset all for now).
                ! atm_recover_large_step_variables will not have set outermost edge velocities correctly.
-
-
-               call mpas_pool_get_subpool(block % structs, 'state', state)
-               call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
                call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
                call mpas_pool_get_dimension(state, 'nEdgesSolve', nEdgesSolve)
                call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
@@ -1316,7 +1250,6 @@ module atm_time_integration
 !-------------------------------------------------------------------
             
             ! u
-            call mpas_pool_get_subpool(block % structs, 'state', state)
 
             call mpas_pool_get_array_gpu(state, 'u',gpu_u_2, 2)
             gpuArraySize(1) = size(gpu_u_2,1)
@@ -1340,11 +1273,6 @@ module atm_time_integration
 
                   call mpas_pool_get_field(state, 'scalars', scalars_field, 2)  ! need to fill halo for horizontal filter
                   call mpas_dmpar_exch_halo_field(scalars_field)
-
-
-                  call mpas_pool_get_subpool(block % structs, 'state', state)
-                  call mpas_pool_get_subpool(block % structs, 'diag', diag)
-                  call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
    
                   call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
                   call mpas_pool_get_dimension(mesh, 'nCells', nCells)
@@ -1411,10 +1339,6 @@ module atm_time_integration
             end if
 
             call mpas_timer_start('atm_compute_solve_diagnostics')
-            call mpas_pool_get_subpool(block % structs, 'state', state)
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
-            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-   
             call mpas_pool_get_dimension(state, 'nEdges', nEdges)
             call mpas_pool_get_dimension(state, 'nVertices', nVertices)
             call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels)
@@ -1444,7 +1368,6 @@ module atm_time_integration
             call mpas_timer_stop('atm_compute_solve_diagnostics')
 
 
-            call mpas_pool_get_subpool(block % structs, 'state', state)
 
             ! w
             call mpas_pool_get_array_gpu(state, 'w', gpu_w_2, 2)
@@ -1456,7 +1379,6 @@ module atm_time_integration
                                               gpu_compactHaloInfoSize_c_vP1, gpuArraySize(1), gpuArraySize(2))
 
             ! pv_edge
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
             call mpas_pool_get_array_gpu(diag, 'pv_edge', gpu_pv_edge)
             gpuArraySize(1) = size(gpu_pv_edge,1)
             gpuArraySize(2) = size(gpu_pv_edge,2)
@@ -1492,8 +1414,6 @@ module atm_time_integration
             
             if ( config_apply_lbcs ) then  ! regional_MPAS addition
 
-                call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-                call mpas_pool_get_subpool(block % structs, 'state', state)
                 call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
 
                 call mpas_pool_get_dimension(block % dimensions, 'cellSolveThreadStart', cellSolveThreadStart)
@@ -1507,7 +1427,6 @@ module atm_time_integration
 
 
               ! w halo values needs resetting after regional boundary update
-              call mpas_pool_get_subpool(block % structs, 'state', state)
               call mpas_pool_get_field(state, 'w', w_field, 2)
               call mpas_dmpar_exch_halo_field(w_field)
 
@@ -1516,7 +1435,6 @@ module atm_time_integration
          end do RK3_DYNAMICS
 
          if (dynamics_substep < dynamics_split) then
-            call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_array_gpu(state, 'theta_m', gpu_theta_m_2, 2)
             gpuArraySize(1) = size(gpu_theta_m_2,1)
             gpuArraySize(2) = size(gpu_theta_m_2,2)
@@ -1557,8 +1475,6 @@ module atm_time_integration
          !  Notes:  physics tendencies for scalars should be OK coming out of dynamics
 
          call mpas_timer_start('atm_rk_dynamics_substep_finish')
-         call mpas_pool_get_subpool(block % structs, 'state', state)
-         call mpas_pool_get_subpool(block % structs, 'diag', diag)
 
          call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
 
@@ -1630,11 +1546,6 @@ module atm_time_integration
 
                call mpas_pool_get_field(state, 'scalars', scalars_field, 2)  ! need to fill halo for horizontal filter
                call mpas_dmpar_exch_halo_field(scalars_field)
-
-
-               call mpas_pool_get_subpool(block % structs, 'state', state)
-               call mpas_pool_get_subpool(block % structs, 'diag', diag)
-               call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
    
                call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
                call mpas_pool_get_dimension(mesh, 'nCells', nCells)
@@ -1726,9 +1637,6 @@ module atm_time_integration
       ! reconstruct full velocity vectors at cell centers:
       !
       call mpas_timer_start('atm_rk_reconstruct')
-      call mpas_pool_get_subpool(block % structs, 'state', state)
-      call mpas_pool_get_subpool(block % structs, 'diag', diag)
-      call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
 
       call mpas_pool_get_array_gpu(state, 'u', u, 2)
 !      call mpas_pool_get_array_gpu(state, 'u', gpu_u_2, 2)
@@ -1756,13 +1664,6 @@ module atm_time_integration
       !
 
 #ifdef DO_PHYSICS
-
-      call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-      call mpas_pool_get_subpool(block % structs, 'state', state)
-      call mpas_pool_get_subpool(block % structs, 'diag', diag)
-      call mpas_pool_get_subpool(block % structs, 'diag_physics', diag_physics)
-      call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
-      call mpas_pool_get_subpool(block % structs, 'tend', tend)
       call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
       call mpas_pool_get_array_gpu(state, 'scalars', scalars_1, 1)
       call mpas_pool_get_array_gpu(state, 'scalars', scalars_2, 2)
@@ -1848,10 +1749,6 @@ module atm_time_integration
 
       if (config_apply_lbcs) then  ! reset boundary values of rtheta in the specified zone - microphysics has messed with them
 
-        call mpas_pool_get_subpool(block % structs, 'state', state)
-        call mpas_pool_get_subpool(block % structs, 'diag', diag)
-        call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-
         call mpas_pool_get_dimension(mesh, 'nCells', nCells)
         call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
         call mpas_pool_get_dimension(block % dimensions, 'nThreads', nThreads)
@@ -1889,8 +1786,6 @@ module atm_time_integration
          call mpas_dmpar_exch_halo_field(scalars_field)
 
 
-         call mpas_pool_get_subpool(block % structs, 'state', state)
-         call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
    
          call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
          call mpas_pool_get_dimension(mesh, 'nCells', nCells)
