@@ -58,7 +58,7 @@ if [ -s physics_wrf/files/COMPATIBILITY ]; then
 
 else
 
-   echo "*** No compatible version of WRF physics tables found; attempting to download compatible tables ***"
+   echo "*** No compatible version of WRF physics tables found; attempting to find or download compatible tables ***"
 
 fi
 
@@ -66,6 +66,32 @@ if [ ! -d physics_wrf/files ]; then
    mkdir -p physics_wrf/files
 fi
 
+#
+# Try copying from a local directory that is assumed to be a git repo
+#
+if [ ! -z ${MPAS_DATA_LOCAL_PATH} ]; then
+   if [ -d ${MPAS_DATA_LOCAL_PATH} ]; then
+      echo "*** Trying to obtain WRF physics tables from ${MPAS_DATA_LOCAL_PATH} ***"
+      cd ${MPAS_DATA_LOCAL_PATH}
+      git checkout v${mpas_vers}
+      if [ $? -ne 0 ]; then
+         echo "*** git not in path or MPAS version-specific tag not found; copying current version of files ***" 
+      else
+         echo "*** Found v${mpas_vers} tag ***"
+      fi
+      cd ${OLDPWD}
+      cp ${MPAS_DATA_LOCAL_PATH}/atmosphere/physics_wrf/files/* physics_wrf/files 
+
+      check_compatibility
+      if [ $? -eq 1 ]; then
+         echo "*** Successfully obtained compatible versions of WRF physics tables ***"
+         exit 0
+      fi
+   else
+      echo "*** MPAS_DATA_LOCAL_PATH environment variable is set, but does not point to a valid location ***"
+      echo "*** Failed to obtain WRF physics tables from local directory ***"
+   fi
+fi
 
 #
 # Try using 'git'
