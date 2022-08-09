@@ -3931,6 +3931,7 @@ module atm_time_integration
       implicit none
 
       integer, intent(in) :: nCells           ! for allocating stack variables
+      integer, intent(in) :: nEdges            ! for allocating stack variables
       integer, intent(in) :: num_scalars
       real (kind=RKIND), intent(in) :: dt
       integer, intent(in) :: edgeStart, edgeEnd
@@ -3952,7 +3953,6 @@ module atm_time_integration
       real (kind=RKIND), dimension(num_scalars,nVertLevels,nEdges+1), intent(inout) :: horiz_flux_arr
       real (kind=RKIND), dimension(:), intent(in) :: invAreaCell
       integer, dimension(:), intent(in) :: bdyMaskCell, bdyMaskEdge ! regional_MPAS addition
-      integer, intent(in) :: nEdges
 
       integer :: i, j, iCell, iAdvCell, iEdge, k, iScalar, cell1, cell2
       real (kind=RKIND) :: rho_zz_new_inv
@@ -4505,7 +4505,6 @@ module atm_time_integration
 !$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2) private(iEdge)
          do iCell=cellSolveStart,cellSolveEnd
-   
 !DIR$ IVDEP
 !!!!$acc loop vector
                do k=1,nVertLevels
@@ -5596,12 +5595,12 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 
             do iCell = cellStart,cellEnd
                !
-               ! 2nd-order filter for top absorbing layer as in CAM-SE :  WCS 10 May 2017
-               ! From MPAS-CAM V4.0 code, with addition to config-specified coefficient (V4.0_coef = 0.2; SE_coef = 1.0)
+               ! 2nd-order filter for top absorbing layer as in CAM-SE :  WCS January 2021
+               ! CAM6 SE damping layer coefficients from Peter Lauritzen with config_mpas_cam_coef = 1.0
                !
-               kdiff(nVertLevels-2,iCell) = max(kdiff(nVertLevels-2,iCell),    2.0833*config_len_disp*config_mpas_cam_coef)
-               kdiff(nVertLevels-1,iCell) = max(kdiff(nVertLevels-1,iCell),2.0*2.0833*config_len_disp*config_mpas_cam_coef)
-               kdiff(nVertLevels  ,iCell) = max(kdiff(nVertLevels  ,iCell),4.0*2.0833*config_len_disp*config_mpas_cam_coef)
+               kdiff(nVertLevels,iCell) = max(kdiff(nVertLevels,iCell), 18.333*config_len_disp*config_mpas_cam_coef)
+               kdiff(nVertLevels-1,iCell) = max(kdiff(nVertLevels-1,iCell), 5.4*config_len_disp*config_mpas_cam_coef)
+               kdiff(nVertLevels-2,iCell) = max(kdiff(nVertLevels-2,iCell), 1.6*config_len_disp*config_mpas_cam_coef)
             end do
 
          end if
