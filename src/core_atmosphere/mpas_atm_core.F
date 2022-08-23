@@ -242,6 +242,9 @@ module atm_core
                                domain % blocklist % structs, domain % clock, domain % dminfo)
 
 if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
+      !
+      ! Prepare the dynamics for integration
+      !
       call mpas_atm_dynamics_init(domain)
 end if 
 
@@ -983,6 +986,9 @@ end if
 #endif
 
 if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
+      !
+      ! Finalize the dynamics
+      !
       call mpas_atm_dynamics_finalize(domain)
 end if 
 

@@ -132,18 +132,23 @@ module atm_time_integration
    contains
 
 
-   !-----------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    !  routine MPAS_atm_dynamics_init
    !
-   !> \brief Initialize the dynamics component
+   !> \brief Initialize the dynamics
    !> \author Michael Duda
-   !> \date   23 March 2018
+   !> \date   09 Aug 2022
    !> \details
    !>  Prepare the dynamics component of MPAS-Atmosphere for time integration.
-   !>  This may involve allocating dynamics-local storage, and setting up
-   !>  OpenACC-optimized communication structures.
+   !>  This may involve, for example, allocating dynamics-local storage,
+   !>  initializing data structures used throughout the dynamics, or
+   !>  setting up OpenACC-optimized communication structures. Since this  routine
+   !>  is called once before the first integration step, the work done by this
+   !>  routine is generally persistent across all calls to the dynamical core,
+   !>  in contrast to work that is performed at the beginning of each call to the
+   !>  dynamical core.
    !
-   !-----------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    subroutine mpas_atm_dynamics_init(domain)
 
       implicit none
@@ -287,17 +292,21 @@ module atm_time_integration
    end subroutine mpas_gpu_halo_init
 
 
-   !-----------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    !  routine MPAS_atm_dynamics_finalize
    !
-   !> \brief Finalize the dynamics component
+   !> \brief Finalize the dynamics
    !> \author Michael Duda
-   !> \date   23 March 2018
+   !> \date   09 Aug 2022
    !> \details
-   !>  Free up dynamics-local memory and shut down infrastructure used
-   !>  only in the dynamics component of MPAS-Atmosphere.
+   !>  Finalizes the dynamics component of MPAS-Atmosphere by, for example,
+   !>  freeing up dynamics-local memory and shut down infrastructure used only
+   !>  in the dynamics component of MPAS-Atmosphere. This routine is called once
+   !>  after the last integration step, and the work done here is usually the
+   !>  inverse of that done in the mpas_atm_dynamics_init routine (e.g.,
+   !>  deallocating memory that was allocated by mpas_atm_dynamics_init).
    !
-   !-----------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    subroutine mpas_atm_dynamics_finalize(domain)
 
       implicit none
