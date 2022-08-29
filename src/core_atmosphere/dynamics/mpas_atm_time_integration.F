@@ -772,6 +772,7 @@ module atm_time_integration
       end do
       call mpas_timer_stop('physics_get_tend')
 #else
+#ifndef MPAS_CAM_DYCORE
       !
       ! If no physics are being used, simply zero-out the physics tendency fields
       !
@@ -795,6 +796,7 @@ module atm_time_integration
         end do
       end do
 !$acc end parallel
+#endif
 #endif
 
       !
