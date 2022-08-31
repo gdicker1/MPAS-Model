@@ -7,7 +7,7 @@ endif
 dummy:
 	( $(MAKE) error )
 
-xlf:
+xlf:   # BUILDTARGET IBM XL compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpifort" \
 	"CC_PARALLEL = mpicc" \
@@ -37,7 +37,7 @@ xlf:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-xlf-summit-omp-offload:
+xlf-summit-omp-offload:   # BUILDTARGET IBM XL compilers w/OpenMP offloading on ORNL Summit
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -67,7 +67,7 @@ xlf-summit-omp-offload:
 	"OPENMP_OFFLOAD = $(OPENMP_OFFLOAD)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DFORTRAN_SAME -DCPRIBM -DLINUX" )
 
-ftn:
+ftn:   # BUILDTARGET Cray compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -92,7 +92,7 @@ ftn:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-titan-cray:
+titan-cray:   # BUILDTARGET (deprecated) Cray compilers with options for ORNL Titan
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -114,7 +114,7 @@ titan-cray:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-pgi:
+pgi:   # BUILDTARGET PGI compiler suite
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -144,7 +144,7 @@ pgi:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DCPRPGI" )
 
-pgi-summit:
+pgi-summit:   # BUILDTARGET PGI compiler suite w/OpenACC options for ORNL Summit
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -174,7 +174,7 @@ pgi-summit:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = -DpgiFortran -D_MPI -DUNDERSCORE" )
 
-pgi-nersc:
+pgi-nersc:   # BUILDTARGET (deprecated) PGI compilers on NERSC machines
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -199,7 +199,7 @@ pgi-nersc:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DCPRPGI" )
 
-pgi-llnl:
+pgi-llnl:   # BUILDTARGET (deprecated) PGI compilers on LLNL machines
 	( $(MAKE) all \
 	"FC_PARALLEL = mpipgf90" \
 	"CC_PARALLEL = pgcc" \
@@ -224,7 +224,7 @@ pgi-llnl:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DCPRPGI" )
 
-ifort:
+ifort:   # BUILDTARGET Intel Fortran, C, and C++ compiler suite
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -254,7 +254,7 @@ ifort:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-ifort-scorep:
+ifort-scorep:   # BUILDTARGET Intel compiler suite with ScoreP profiling library
 	( $(MAKE) all \
 	"FC_PARALLEL = scorep --compiler mpif90" \
 	"CC_PARALLEL = scorep --compiler mpicc" \
@@ -283,7 +283,7 @@ ifort-scorep:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-ifort-gcc:
+ifort-gcc:   # BUILDTARGET Intel Fortran compiler and GNU C/C++ compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -312,7 +312,7 @@ ifort-gcc:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-intel-mpi:
+intel-mpi:   # BUILDTARGET Intel compiler suite with Intel MPI library
 	( $(MAKE) all \
 	"FC_PARALLEL = mpiifort" \
 	"CC_PARALLEL = mpiicc" \
@@ -342,7 +342,7 @@ intel-mpi:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-gfortran:
+gfortran:   # BUILDTARGET GNU Fortran, C, and C++ compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -372,7 +372,7 @@ gfortran:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-gfortran-clang:
+gfortran-clang:   # BUILDTARGET GNU Fortran compiler with LLVM clang/clang++ compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc -cc=clang" \
@@ -401,7 +401,7 @@ gfortran-clang:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-g95:
+g95:   # BUILDTARGET (deprecated) G95 Fortran compiler with GNU C/C++ compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
 	"CC_PARALLEL = mpicc" \
@@ -426,7 +426,7 @@ g95:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-pathscale-nersc:
+pathscale-nersc:   # BUILDTARGET (deprecated) Pathscale compilers on NERSC machines
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -451,7 +451,7 @@ pathscale-nersc:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-cray-nersc:
+cray-nersc:   # BUILDTARGET (deprecated) Cray compilers on NERSC machines
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -476,7 +476,7 @@ cray-nersc:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-gnu-nersc:
+gnu-nersc:   # BUILDTARGET (deprecated) GNU compilers on NERSC machines
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -500,7 +500,7 @@ gnu-nersc:
 	"USE_PAPI = $(USE_PAPI)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI $(FILE_OFFSET) $(ZOLTAN_DEFINE)" )
 
-intel-nersc:
+intel-nersc:   # BUILDTARGET (deprecated) Intel compilers on NERSC machines
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \
 	"CC_PARALLEL = cc" \
@@ -529,7 +529,7 @@ intel-nersc:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-bluegene:
+bluegene:   # BUILDTARGET (deprecated) IBM XL compilers on BlueGene/Q systems
 	( $(MAKE) all \
 	"FC_PARALLEL = mpixlf95_r" \
 	"CC_PARALLEL = mpixlc_r" \
@@ -558,7 +558,7 @@ bluegene:
 	"OPENACC = $(OPENACC)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-llvm:
+llvm:   # BUILDTARGET LLVM flang, clang, and clang++ compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpifort" \
 	"CC_PARALLEL = mpicc" \
@@ -585,7 +585,7 @@ llvm:
 	"OPENMP = $(OPENMP)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI" )
 
-nag:
+nag:   # BUILDTARGET NAG Fortran compiler and GNU C/C++ compilers
 	( $(MAKE) all \
 	"FC_PARALLEL = mpifort" \
 	"CC_PARALLEL = mpicc" \
@@ -1135,11 +1135,8 @@ errmsg:
 	@echo ""
 	@echo "Usage: $(MAKE) target CORE=[core] [options]"
 	@echo ""
-	@echo "Example targets:"
-	@echo "    ifort"
-	@echo "    gfortran"
-	@echo "    xlf"
-	@echo "    pgi"
+	@echo "Available Targets:"
+	@grep BUILDTARGET Makefile | grep -v grep | sed -e 's/#[[:blank:]]*BUILDTARGET[[:blank:]]*/#/' | sed -e 's/:[[:blank:]]*#/:#/' | sed -e 's/://' | awk 'BEGIN {FS="#"}{printf ("    %-15s - %s\n", $$1, $$2)}'
 	@echo ""
 	@echo "Availabe Cores:"
 	@cd src; ls -d core_* | grep ".*" | sed "s/core_/    /g"
