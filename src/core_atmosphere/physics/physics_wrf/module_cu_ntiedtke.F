@@ -605,6 +605,7 @@ contains
 !-----------------------------------------------------------------
       implicit none
 !
+      integer lq,km,km1
       real pu(lq,km),   pv(lq,km),   pt(lq,km),   pqv(lq,km)
       real poz(lq,km),  pomg(lq,km), evap(lq),    zprecc(lq)
       real pzz(lq,km1)
@@ -625,7 +626,7 @@ contains
       logical locum(lq)
 !
       real ztmst,fliq,fice,ztc,zalf,tt
-      integer i,j,k,lq,km,km1
+      integer i,j,k
       real dt,ztpp1
       real zew,zqs,zcor
 !$acc data create(pum1,pvm1,ztt,ptte,pqte,pvom,pvol,pverv,pgeo, &
@@ -4177,6 +4178,7 @@ contains
 !   ---------
 !          none
 ! ----------------------------------------------------------------
+      integer  klon, klev
       real     pten(klon,klev),        pqen(klon,klev),&
      &         puen(klon,klev),        pven(klon,klev),&
      &         pqsen(klon,klev),       pverv(klon,klev),&
@@ -4192,7 +4194,7 @@ contains
      &         klab(klon,klev)
       logical  ldcum(klon)
 ! local variabels
-      integer  jl,kk,klev,klon,klevp1,klevm1
+      integer  jl,kk,klevp1,klevm1
       real     zzzmb
 !--------------------------------------------------------
 !*    1.      calculate entrainment and detrainment rates
