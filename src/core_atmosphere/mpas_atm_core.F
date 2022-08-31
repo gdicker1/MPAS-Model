@@ -32,6 +32,7 @@ module atm_core
       use mpas_atm_threading, only : mpas_atm_threading_init
       use mpas_intracoupler, only : MPAS_coupler_create_pairing
       use atm_time_integration, only : mpas_atm_dynamics_init
+      use mpas_timer, only : mpas_timer_start, mpas_timer_stop
 
       implicit none
 
@@ -144,6 +145,7 @@ module atm_core
       ! input alarms for both input and restart before reading any remaining
       ! input streams.
       !
+      call mpas_timer_start('read_ICs')
       if (config_do_restart) then
          init_stream_name = 'restart'
       else
@@ -154,6 +156,7 @@ module atm_core
       call mpas_dmpar_get_time(input_start_time)
       call MPAS_stream_mgr_read(domain % streamManager, streamID=trim(init_stream_name), ierr=ierr)
       call mpas_dmpar_get_time(input_stop_time)
+      call mpas_timer_stop('read_ICs')
 
       if (ierr /= MPAS_STREAM_MGR_NOERR) then
          call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
@@ -552,7 +555,7 @@ end if
       use mpas_kind_types
       use mpas_stream_manager
       use mpas_derived_types, only : MPAS_STREAM_LATEST_BEFORE, MPAS_STREAM_INPUT, MPAS_STREAM_INPUT_OUTPUT
-      use mpas_timer
+      use mpas_timer, only : mpas_timer_start, mpas_timer_stop
       use mpas_atm_boundaries, only : mpas_atm_update_bdy_tend
       use mpas_atm_diagnostics_manager, only : mpas_atm_diag_update, mpas_atm_diag_compute, mpas_atm_diag_reset
    
@@ -618,15 +621,19 @@ end if
                block_ptr => block_ptr % next
             end do
          end if
+         call mpas_timer_start('diagnostic_fields')
          call mpas_atm_diag_reset()
          call mpas_atm_diag_update()
          call mpas_atm_diag_compute()
+         call mpas_timer_stop('diagnostic_fields')
 
          call mpas_dmpar_get_time(diag_stop_time)
 
+         call mpas_timer_start('stream_output')
          call mpas_dmpar_get_time(output_start_time)
          call mpas_stream_mgr_write(domain % streamManager, ierr=ierr)
          call mpas_dmpar_get_time(output_stop_time)
+         call mpas_timer_stop('stream_output')
          if (ierr /= MPAS_STREAM_MGR_NOERR .and. &
              ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_FILE .and. &
              ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_REC) then
@@ -639,7 +646,9 @@ end if
             call mpas_log_write('Timing for stream output: $r s', realArgs=(/real(output_stop_time - output_start_time, kind=RKIND)/))
          end if
 
+         call mpas_timer_start('diagnostic_fields')
          call mpas_atm_diag_reset()
+         call mpas_timer_stop('diagnostic_fields')
 
          call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)
       end if
@@ -714,10 +723,12 @@ end if
                if (stream_dir == MPAS_STREAM_INPUT .or. stream_dir == MPAS_STREAM_INPUT_OUTPUT) then
                   if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID=input_stream, &
                                                      direction=MPAS_STREAM_INPUT, ierr=ierr)) then
+                     call mpas_timer_start('stream_input')
                      call mpas_dmpar_get_time(input_start_time)
                      call MPAS_stream_mgr_read(domain % streamManager, streamID=input_stream, whence=MPAS_STREAM_LATEST_BEFORE, &
                                                actualWhen=read_time, ierr=ierr)
                      call mpas_dmpar_get_time(input_stop_time)
+                     call mpas_timer_stop('stream_input')
                      if (ierr /= MPAS_STREAM_MGR_NOERR) then
                         call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
                         call mpas_log_write('Error reading input stream '//trim(input_stream),                                  messageType=MPAS_LOG_ERR)
@@ -776,13 +787,17 @@ end if
               end do
             end if
 
+            call mpas_timer_start('diagnostic_fields')
             call mpas_atm_diag_update()
             call mpas_atm_diag_compute()
             call mpas_dmpar_get_time(diag_stop_time)
+            call mpas_timer_stop('diagnostic_fields')
 
+            call mpas_timer_start('stream_output')
             call mpas_dmpar_get_time(output_start_time)
             call mpas_stream_mgr_write(domain % streamManager, ierr=ierr)
             call mpas_dmpar_get_time(output_stop_time)
+            call mpas_timer_stop('stream_output')
             if (ierr /= MPAS_STREAM_MGR_NOERR .and. &
                 ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_FILE .and. &
                 ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_REC) then
@@ -821,7 +836,9 @@ end if
                end if
             end if
 
+            call mpas_timer_start('diagnostic_fields')
             call mpas_atm_diag_reset()
+            call mpas_timer_stop('diagnostic_fields')
 
             call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)
          end if
