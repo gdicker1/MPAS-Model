@@ -1847,6 +1847,7 @@ module atm_time_integration
          call mpas_pool_get_subpool(block % structs, 'diag_physics', diag_physics)
          call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
          call mpas_pool_get_subpool(block % structs, 'tend', tend)
+         call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
          call mpas_pool_get_array_gpu(state, 'scalars', scalars_1, 1)
          call mpas_pool_get_array_gpu(state, 'scalars', scalars_2, 2)
          call mpas_pool_get_dimension(state, 'index_qv', index_qv)
