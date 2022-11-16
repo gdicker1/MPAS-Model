@@ -8810,7 +8810,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
        implicit none
 
        type (domain_type), intent(in) :: domain
-       type (block_type), pointer :: block
 
        integer :: iCell, k, iEdge, iScalar
        integer, pointer :: num_scalars, nCellsSolve, nEdgesSolve, nVertLevels
@@ -8822,8 +8821,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 !declare a pointer to the array that needs to be updated on the host
        real (kind=RKIND), dimension(:,:), pointer :: w, u
 
-         block => domain % blocklist
-         do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
             call mpas_pool_get_subpool(block % structs, 'diag', diag)
             call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -8837,8 +8834,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
         !$acc update host(w, &
         !$acc u)
 
-            block => block % next
-         end do
 
 
    end subroutine mpas_update_gpu_data_on_host
