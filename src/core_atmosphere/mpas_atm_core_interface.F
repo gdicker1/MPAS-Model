@@ -221,6 +221,12 @@ module atm_core_interface
               local_rank = self % intercomm_rank
               role = ior(ROLE_INTEGRATE, ROLE_RADIATION)
 
+#ifdef MPAS_OPENACC
+              num_devices = acc_get_num_devices(acc_device_nvidia)
+              call acc_set_device_num(mod(local_rank,num_devices), acc_device_nvidia)
+              write(0,*) 'Assigning task to device $i', mod(local_rank,num_devices)
+#endif
+
           end if
 
       end if
