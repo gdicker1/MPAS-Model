@@ -241,6 +241,11 @@ contains
    real:: rho_d
    real,intent(out),dimension(ims:ime,kms:kme,jms:jme),optional:: kzhout,kzmout,kzqout
 !$acc parallel vector_length(32)
+!$acc declare create(rqvbl2dt(its:ite, kts:kte*ndiff), qv2d(its:ite, kts:kte*ndiff), pdh, pdhi, dusfc, dvsfc, &
+!$acc dtsfc, dqsfc)
+#endif
+
+#if defined(mpas)
 !$acc loop gang vector collapse(3)
    do j = jts,jte
    do k = kts,kte
@@ -254,8 +259,6 @@ contains
 !$acc end parallel
 !MPAS specific end.
 #endif
-!$acc data create(rqvbl2dt, qv2d, pdh, pdhi, dusfc, dvsfc, &
-!$acc dtsfc, dqsfc)
 
 !
 !$acc parallel vector_length(128)
@@ -386,7 +389,6 @@ contains
 !$acc end parallel
 !
    enddo
-!$acc end data
 !
    end subroutine ysu
 !
@@ -663,7 +665,7 @@ contains
 !MPAS specific end.
 #endif
 
-!$acc data create(hol,zq,thx,thvx,thlix,del,dza,dzq,xkzo,za, &
+!$acc declare create(hol,zq,thx,thvx,thlix,del,dza,dzq,xkzo,za, &
 !$acc rhox,govrth,zl1,thermal,wscale,brdn,brup,phim,phih, &
 !$acc dusfc,dvsfc,dtsfc,dqsfc,prpbl,wspd1,thermalli,xkzm,xkzh,f1,f2, &
 !$acc r1,r2,ad,au,cu,al,xkzq,zfac,rhox2,hgamt2,brcr,sflux,zol1,brcr_sbro, &
@@ -677,7 +679,6 @@ contains
 !
 !-------------------------------------------------------------------------------
 !
-!$acc parallel num_gangs(1) num_workers(1) vector_length(1)
    klpbl = kte
 !
    cont=cp/g
@@ -691,7 +692,6 @@ contains
    ktrace1 = 0
    ktrace2 = 0 + kte
    ktrace3 = 0 + kte*2
-!$acc end parallel
 !
 !$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2)
@@ -1764,7 +1764,6 @@ contains
    endif
 !MPAS specific end.
 !
-!$acc end data
    end subroutine ysu2d
 !-------------------------------------------------------------------------------
 !

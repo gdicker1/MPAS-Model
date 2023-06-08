@@ -172,7 +172,7 @@ CONTAINS
   REAL, DIMENSION( kts:kte ) :: qc1d
   REAL, DIMENSION( kts:kte ) :: qi1d
   REAL, DIMENSION( kts:kte ) :: re_qc, re_qi, re_qs
- !$acc data create(t, qci, qrs, qv1d, t1d, p1d, qr1d, qs1d, qg1d, dBZ, &
+ !$acc declare create(t, qci, qrs, qv1d, t1d, p1d, qr1d, qs1d, qg1d, dBZ, &
  !$acc den1d, qc1d, qi1d, re_qc, re_qi, re_qs)
 
 !write(*,*) "*** Section 2.0 ***"
@@ -272,7 +272,6 @@ CONTAINS
 !+---+-----------------------------------------------------------------+
 
       ENDDO
-!$acc end data
   END SUBROUTINE wsm6
 !===================================================================
 !
@@ -474,7 +473,7 @@ CONTAINS
   REAL                       ::                              temp, &
                                                        n0smax_n0s
 
-!$acc data create(rh, qs, rslope, rslope2, rslope3, rslopeb, qrs_tmp, falk, &
+!$acc declare create(rh, qs, rslope, rslope2, rslope3, rslopeb, qrs_tmp, falk, &
 !$acc fall, work1, fallc, falkc, work1c, work2c, workr, worka, den_tmp, delz_tmp, &
 !$acc pigen, pidep, pcond, prevp, psevp, pgevp, psdep, pgdep, praut, psaut, &
 !$acc pgaut, piacr, pracw, praci, pracs, psacw, psaci, psacr, pgacw, pgaci, &
@@ -1631,7 +1630,6 @@ CONTAINS
       enddo
 !$acc end parallel
       enddo                  ! big loops
-!$acc end data
 !write(*,*) "*** Section 2.1.9 ***"
   END SUBROUTINE wsm62d
 ! ...................................................................
@@ -1816,7 +1814,7 @@ CONTAINS
                                                                        n0sfac
   REAL       ::  lamdar, lamdas, lamdag, x, y, z, supcol, n0smax_n0s
   integer :: i, j, k
-!$acc data create(n0sfac)
+!$acc declare create(n0sfac)
 !----------------------------------------------------------------
 !     size distributions: (x=mixing ratio, y=air density):
 !     valid for mixing ratio > 1.e-9 kg/kg.
@@ -1879,7 +1877,6 @@ CONTAINS
         enddo
       enddo
 !$acc end parallel
-!$acc end data
   END subroutine slope_wsm6
 !-----------------------------------------------------------------------------
       subroutine slope_rain(qrs,den,denfac,t,rslope,rslopeb,rslope2,rslope3,   & 

@@ -135,7 +135,7 @@ contains
   real, dimension( its:ite, 4 ) :: oa4, &
                                                                           ol4
   integer :: i,j,k,kdt
-!$acc data create(delprsi,pdh,pdhi,oa4,ol4)
+!$acc declare create(delprsi,pdh,pdhi,oa4,ol4)
 !
    do j = jts,jte
       if(present(mut))then
@@ -206,7 +206,6 @@ contains
               ,its=its,ite=ite, jts=jts,jte=jte, kts=kts,kte=kte )
    enddo
 !
-!$acc end data
 !
    end subroutine gwdo
 !
@@ -356,12 +355,12 @@ contains
    data nwdir/6,7,5,8,2,3,1,4/
 
 #if defined(mpas)
-!$acc data create(cleff,ldrag,icrilv,flag,kloop1,taub,taup,xn,yn, &
+!$acc declare create(cleff,ldrag,icrilv,flag,kloop1,taub,taup,xn,yn, &
 !$acc ubar,vbar,fr,ulow,rulow,bnv,oa,ol,roll,dtfac,brvf,xlinv, &
 !$acc delks,delks1,bnv2,usqj,taud,ro,vtk,vtj,zlowtop,velco, &
 !$acc kbl,klowtop,lowlv) copyin(nwdir)
 #else
-!$acc data create(ldrag,icrilv,flag,kloop1,taub,taup,xn,yn, &
+!$acc declare create(ldrag,icrilv,flag,kloop1,taub,taup,xn,yn, &
 !$acc ubar,vbar,fr,ulow,rulow,bnv,oa,ol,roll,dtfac,brvf,xlinv, &
 !$acc delks,delks1,bnv2,usqj,taud,ro,vtk,vtj,zlowtop,velco, &
 !$acc kbl,klowtop,lowlv) copyin(nwdir)
@@ -906,7 +905,6 @@ contains
    enddo
 !$acc end parallel
 !
-!$acc end data
    return
    end subroutine gwdo2d
 !-------------------------------------------------------------------
