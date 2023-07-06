@@ -240,12 +240,13 @@ contains
    real,intent(in),dimension(ims:ime,kms:kme,jms:jme),optional:: rho
    real:: rho_d
    real,intent(out),dimension(ims:ime,kms:kme,jms:jme),optional:: kzhout,kzmout,kzqout
-!$acc parallel vector_length(32)
-!$acc declare create(rqvbl2dt(its:ite, kts:kte*ndiff), qv2d(its:ite, kts:kte*ndiff), pdh, pdhi, dusfc, dvsfc, &
-!$acc dtsfc, dqsfc)
 #endif
 
+!$acc declare create(rqvbl2dt(its:ite, kts:kte*ndiff), qv2d(its:ite, kts:kte*ndiff), pdh, pdhi, dusfc, dvsfc, &
+!$acc dtsfc, dqsfc)
+
 #if defined(mpas)
+!$acc parallel vector_length(32)
 !$acc loop gang vector collapse(3)
    do j = jts,jte
    do k = kts,kte
@@ -261,7 +262,7 @@ contains
 #endif
 
 !
-!$acc parallel vector_length(128)
+!$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2)
 !!!   qv2d(its:ite,:) = 0.0
    do k = kts, (kte*ndiff)
