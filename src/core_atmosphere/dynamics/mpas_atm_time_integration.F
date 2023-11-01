@@ -491,7 +491,7 @@ module atm_time_integration
       real (kind=RKIND), dimension(:,:,:), pointer :: gpu_scalars_1, gpu_scalars_2
       integer, dimension(3) :: gpuArraySize
       ! Local variables for indexing
-      integer :: levelsIdx, scalarsIdx, cellsIdx
+      integer :: levelsIdx, scalarsIdx, cellsIdx, edgesIdx
       integer :: tmpnum_scalars, tmpnCells, tmpnVertLevels, tmpnEdges
       !
       ! Retrieve configuration options
@@ -742,9 +742,17 @@ module atm_time_integration
       !
       ! If no physics are being used, simply zero-out the physics tendency fields
       !
-      tend_ru_physics(:,:) = 0.0_RKIND
-      tend_rtheta_physics(:,:) = 0.0_RKIND
-      tend_rho_physics(:,:) = 0.0_RKIND
+      do edgesIdx=1,nEdges+1
+        do levelsIdx=1,nVertLevels
+          tend_ru_physics(levelsIdx,edgesIdx) = 0.0_RKIND
+        end do
+      end do 
+      do cellsIdx=1,nCells+1
+        do levelsIdx=1,nVertLevels
+          tend_rtheta_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+          tend_rho_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+        end do
+      end do
 #endif
 
       !
@@ -2424,23 +2432,26 @@ module atm_time_integration
       real (kind=RKIND), dimension(nVertLevels,nEdges+1) :: cqu
       integer, dimension(2,nEdges+1) :: cellsOnEdge
 !$acc data present(scalars,cqw,cqu, qtot)
-!$acc parallel num_gangs(256)  vector_length(32)
-!$acc loop gang 
+
       do iCell = edgeStart,edgeEnd
-!$acc loop vector
          do k = 1,nVertLevels
-                tend_ru_physics(k,iCell) = 0.0_RKIND
-            end do
+            tend_ru_physics(k,iCell) = 0.0_RKIND
          end do
-!$acc end parallel
+      end do
+
+      do iCell = cellStart,cellEnd
+         do k = 1,nVertLevels
+            tend_rtheta_physics(k,iCell) = 0.0_RKIND
+            tend_rho_physics(k,iCell) = 0.0_RKIND
+         end do
+      end do
+
 !$acc parallel num_gangs(256)  vector_length(32)
 !$acc loop gang 
       do iCell = cellStart,cellEnd
 !$acc loop vector
          do k = 1,nVertLevels
            qtot(k,iCell) = 0.0
-           tend_rtheta_physics(k,iCell) = 0.0_RKIND
-           tend_rho_physics(k,iCell) = 0.0_RKIND
 !$acc loop seq
             do iq = moist_start, moist_end
                qtot(k,iCell) = qtot(k,iCell) + scalars(iq, k, iCell)
@@ -5558,13 +5569,13 @@ module atm_time_integration
 !$acc delsq_theta, tend_theta_euler, &
 !$acc defc_a, defc_b, edgesoncell, nedgesoncell, u, v, &
 !$acc dvedge, edgesoncell_sign, invareacell, ru, qtot, rb, rdzw, rr_save, rw, &
-!$acc tend_rho_physics, cellsonedge, cqu, invdcedge, pp, zxu, zz, &
+!$acc cellsonedge, cqu, invdcedge, pp, zxu, zz, &
 !$acc fzm, fzp, edgesonedge, ke, nedgesonedge, pv_edge, rho_edge, weightsonedge, &
 !$acc divergence, invdvedge, meshscalingdel2, verticesonedge, vorticity, &
 !$acc dcedge, edgesonvertex, edgesonvertex_sign, invareatriangle, &
-!$acc meshscalingdel4, zgrid, angleedge, u_init, tend_ru_physics, adv_coefs, &
+!$acc meshscalingdel4, zgrid, angleedge, u_init, adv_coefs, &
 !$acc adv_coefs_3rd, advcellsforedge, nadvcellsforedge, w, cqw, rdzu, rho_zz, &
-!$acc theta_m, theta_m_save, rt_diabatic_tend, tend_rtheta_physics, t_init, &
+!$acc theta_m, theta_m_save, rt_diabatic_tend, t_init, &
 !$acc rw_save,tend_rtheta_adv,rthdynten)
 
 
@@ -5669,13 +5680,20 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 
       !  rgas_cprcv = rgas*cp/cv
 
+!$acc update host(tend_rho,h_divergence,rdzw,rw)
+        do iCell = cellStart,cellEnd
+           do k = 1,nVertLevels
+              tend_rho(k,iCell) = -h_divergence(k,iCell)-rdzw(k)*(rw(k+1,iCell)-rw(k,iCell)) + tend_rho_physics(k,iCell)
+           end do
+        end do
+!$acc update device(tend_rho)
+
 !$acc parallel vector_length(64)
 !$acc loop gang
         do iCell = cellStart,cellEnd
 !DIR$ IVDEP
 !$acc loop vector
           do k = 1,nVertLevels
-            tend_rho(k,iCell) = -h_divergence(k,iCell)-rdzw(k)*(rw(k+1,iCell)-rw(k,iCell)) + tend_rho_physics(k,iCell)
             dpdz(k,iCell) = -gravity*(rb(k,iCell)*(qtot(k,iCell)) + rr_save(k,iCell)*(1.+qtot(k,iCell)))
           end do
         end do
@@ -5969,17 +5987,13 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 !$acc end kernels
       end if
 
-!$acc parallel vector_length(64)
-!$acc loop gang
+!$acc update host(tend_u, tend_u_euler)
       do iEdge=edgeSolveStart,edgeSolveEnd
-!DIR$ IVDEP
-!$acc loop vector
-         do k=1,nVertLevels
+          do k=1,nVertLevels
             tend_u(k,iEdge) = tend_u(k,iEdge) + tend_u_euler(k,iEdge)  + tend_ru_physics(k,iEdge)
          end do
       end do
-!$acc end parallel
-
+!$acc update device(tend_u)
 
 !----------- rhs for w
 
@@ -6453,16 +6467,13 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 !$acc end parallel
          end if
 
-!$acc parallel vector_length(64)
-!$acc loop gang
-      do iCell = cellSolveStart,cellSolveEnd
-!DIR$ IVDEP
-!$acc loop vector
+!$acc update host(tend_theta,tend_theta_euler)
+       do iCell = cellSolveStart,cellSolveEnd
          do k=1,nVertLevels
             tend_theta(k,iCell) = tend_theta(k,iCell) + tend_theta_euler(k,iCell) + tend_rtheta_physics(k,iCell)
          end do
       end do
-!$acc end parallel
+!$acc update device(tend_theta)
 !$acc end data
    end subroutine atm_compute_dyn_tend_work
 
@@ -6650,8 +6661,6 @@ if (config_horiz_mixing == "2d_smagorinsky") then
        v_theta_eddy_visc2 = config_v_theta_eddy_visc2
 
 !$acc data present(cellsonedge,dvedge,edgesoncell, &
-!$acc tend_ru_physics, &
-!$acc tend_rtheta_physics, &
 !$acc edgesoncell_sign,fzm,fzp,invareacell,nedgesoncell &
 !$acc ,ru,rw,u,edgesonedge, &
 !$acc invdcedge,ke,nedgesonedge, &
@@ -6763,15 +6772,13 @@ if (config_horiz_mixing == "2d_smagorinsky") then
       end do
 !$acc end parallel
 
-!$acc parallel vector_length(64)
-!$acc loop gang
+!$acc update host(tend_u, tend_u_euler)
       do iEdge=edgeSolveStart,edgeSolveEnd
-!$acc loop vector
          do k=1,nVertLevels
             tend_u(k,iEdge) = tend_u(k,iEdge) + tend_u_euler(k,iEdge)  + tend_ru_physics(k,iEdge)
          end do
       end do
-!$acc end parallel
+!$acc update device(tend_u)
 
       !  mixing terms are integrated using forward-Euler, so this tendency is only computed in the
       !  first Runge-Kutta substep and saved for use in later RK substeps 2 and 3.
@@ -7059,10 +7066,17 @@ if (config_horiz_mixing == "2d_smagorinsky") then
             tend_rtheta_adv(k,iCell) = tend_theta(k,iCell)   !  this is for the Tiedke scheme
             rthdynten(k,iCell) = tend_theta(k,iCell)/rho_zz(k,iCell)  !  this is for the Grell-Freitas scheme
             tend_theta(k,iCell) = tend_theta(k,iCell) + rho_zz(k,iCell)*rt_diabatic_tend(k,iCell)
-            tend_theta(k,iCell) = tend_theta(k,iCell) + tend_theta_euler(k,iCell) + tend_rtheta_physics(k,iCell)
          end do
       end do
 !$acc end parallel
+
+!$acc update host(tend_theta, tend_theta_euler)
+      do iCell = cellSolveStart,cellSolveEnd
+         do k = 1,nVertLevels
+             tend_theta(k,iCell) = tend_theta(k,iCell) + tend_theta_euler(k,iCell) + tend_rtheta_physics(k,iCell)
+         end do
+      end do
+!$acc update device(tend_theta)
 
 !$acc end data
    end subroutine atm_compute_dyn_tend_work_rk23
