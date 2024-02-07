@@ -330,7 +330,7 @@ contains
 !-------other local variables----
       integer                      :: zz, pp
 !-----------------------------------------------------------------------
-!$acc data create(rcs,rn,evap,heatflux,dx2d, &
+!$acc declare create(rcs,rn,evap,heatflux,dx2d, &
 !$acc slimsk,prsi,ghti,zi,dot,prsl,q1,q2,q3,q1b,t1b,q11,q12,t1,u1,v1,zl, &
 !$acc omg,ghtl,kbot,ktop)
 !
@@ -516,7 +516,6 @@ contains
 
 
    enddo
-!$acc end data
 
    end subroutine cu_ntiedtke
 
@@ -629,7 +628,7 @@ contains
       integer i,j,k,lq,km,km1
       real dt,ztpp1
       real zew,zqs,zcor
-!$acc data create(pum1,pvm1,ztt,ptte,pqte,pvom,pvol,pverv,pgeo, &
+!$acc declare create(pum1,pvm1,ztt,ptte,pqte,pvom,pvol,pverv,pgeo, &
 !$acc zqq,pcte,ztp1,zqp1,ztu,zqu,zlu,zlude,zmfu,zmfd,zqsat,pqhfl, &
 !$acc prsfc,pssfc,phhfl,zrain,pgeoh,icbot,ictop,locum)
 !
@@ -737,7 +736,6 @@ contains
 !$acc end parallel
       endif
 !
-!$acc end data
       return
       end subroutine tiecnvn
 
@@ -876,7 +874,7 @@ contains
       real     zmfs(klon),pmean(klev),zlon
       real     zduten,zdvten,ztdis,pgf_u,pgf_v
 
-!$acc data create(ztenh,zqenh,zqsenh,ztd,zqd,zmfus,zmfds,zmfuq, &
+!$acc declare create(ztenh,zqenh,zqsenh,ztd,zqd,zmfus,zmfds,zmfuq, &
 !$acc zmfdq,zdmfup,zdmfdp,zmful,zuu,zvu,zud,zvd,zlglac,zrfl, &
 !$acc zdpmel,pmfude_rate,pmfdde_rate,zmfuus,zmfdus,zuv2,ztenu, &
 !$acc ztenv,zhcbase,zmfub,zmfub1,zdhpbl,zsfl,zcape,zcape1,zcape2, &
@@ -1619,7 +1617,6 @@ contains
       end do
 !$acc end parallel
     end if
-!$acc end data
       return
       end subroutine cumastrn
 
@@ -1678,7 +1675,7 @@ contains
       integer  icall,ik
       real     zzs
       real     zqsat,zcor,zqp,zcond1
-!$acc data create(zwmax,zph,loflag)
+!$acc declare create(zwmax,zph,loflag)
 !------------------------------------------------------------
 !*    1.       specify large scale parameters at half levels
 !*             adjust temperature fields if staticly unstable
@@ -1795,7 +1792,6 @@ contains
       end do
       end do
 !$acc end parallel
-!$acc end data
       return
       end subroutine cuinin
 
@@ -1898,7 +1894,7 @@ contains
       logical  needreset, lldcum(klon)
 	  logical  flag
       real     zqsat,zqp,zcond,zcond1,zl,zi,zf
-!$acc data create(ptu,pqu,plu,zph,klab,kctop,kcbot,loflag,deepflag, &
+!$acc declare create(ptu,pqu,plu,zph,klab,kctop,kcbot,loflag,deepflag, &
 !$acc resetflag,dhen,dh,plude,kup,vptu,vten,zbuo,abuoy,zqold,eta,dz, &
 !$acc coef,zcbase,itoppacel,lldcum)
 !--------------------------------------------------------------
@@ -2449,7 +2445,6 @@ contains
       end if
 
       end do ! end all cycles
-!$acc end data
       return
       end subroutine cutypen
 
@@ -2591,7 +2586,7 @@ contains
       real     zzzmb
       logical  llo10
       real  zdz , zmf
-!$acc data create(zlrain,zbuo,kup,zodetr,zph,zdmfen,zdmfde,zmfuu, &
+!$acc declare create(zlrain,zbuo,kup,zodetr,zph,zdmfen,zdmfde,zmfuu, &
 !$acc zmfuv,zpbase,zqold,zluold,zprecip,eta,dz,zentr,pdmfen,zoentr, &
 !$acc zdpmean,loflag,llo1)
 !--------------------------------
@@ -3140,7 +3135,6 @@ contains
       end do
 !$acc end parallel
 
-!$acc end data
       return
       end subroutine cuascn
 !---------------------------------------------------------
@@ -3272,7 +3266,7 @@ contains
       real     zhsk,zttest,zqtest,zbuo,zmftop
       real     zqsat,zcor,zqp,zcond0,zcond1
                                                                                    
-!$acc data create(ztenwb,zqenwb,zcond,zph,zhsmin,ikhsmin,llo2)
+!$acc declare create(ztenwb,zqenwb,zcond,zph,zhsmin,ikhsmin,llo2)
 !----------------------------------------------------------------------          
                                                                                  
 !     1.           set default values for downdrafts                             
@@ -3407,7 +3401,6 @@ contains
 !$acc end parallel
       enddo                                                                      
                                                                                  
-!$acc end data
       return                                                                     
       end subroutine cudlfsn  
 
@@ -3518,7 +3511,7 @@ contains
       real     zentr,zdz,zzentr,zseen,zqeen,zsdde,zqdde,zdmfdp
       real     zmfdsk,zmfdqk,zbuo,zrain,zbuoyz,zmfduk,zmfdvk
       real     zqsat,zcor,zqp,zcond0,zcond1
-!$acc data create(zdmfen,zdmfde,zcond,zoentr,zbuoy,zph,llo2,itopde)
+!$acc declare create(zdmfen,zdmfde,zcond,zoentr,zbuoy,zph,llo2,itopde)
 !----------------------------------------------------------------------   
 !     1.           calculate moist descent for cumulus downdraft by       
 !                     (a) calculating entrainment/detrainment rates,      
@@ -3687,7 +3680,6 @@ contains
         endif
       enddo                                                               
                                                                           
-!$acc end data
       return                                                              
       end subroutine cuddrafn
 !---------------------------------------------------------
@@ -3809,7 +3801,7 @@ contains
       real     rhevap(klon)
       integer  idbas(klon)
       logical  llddraf
-!$acc data create(rhevap,idbas)
+!$acc declare create(rhevap,idbas)
 !--------------------------------------------------------------------          
 !*             specify constants  
 
@@ -4040,7 +4032,6 @@ contains
       enddo
 !$acc end parallel
                                       
-!$acc end data
       return
       end subroutine cuflxn 
 !---------------------------------------------------------
@@ -4072,7 +4063,7 @@ contains
     integer  jk , ik , jl
     real     zalv , zzp
     real     zdtdt(klon,klev) , zdqdt(klon,klev) , zdp(klon,klev)
-!$acc data create(zdtdt,zdqdt,zdp)
+!$acc declare create(zdtdt,zdqdt,zdp)
     !*    1.0          SETUP AND INITIALIZATIONS
     ! -------------------------
 !$acc parallel vector_length(128)
@@ -4139,7 +4130,6 @@ contains
     end do
 !$acc end parallel
 
-!$acc end data
 
     return
   end subroutine cudtdqn
@@ -4169,7 +4159,7 @@ contains
     real     zzp, zdtdt
    
     real     zdudt(klon,klev), zdvdt(klon,klev), zdp(klon,klev)
-!$acc data create(zuen,zven,zmfuu,zmfdu,zmfuv,zmfdv,zdudt,zdvdt,zdp)
+!$acc declare create(zuen,zven,zmfuu,zmfdu,zmfuv,zmfdv,zdudt,zdvdt,zdp)
 !
 !$acc parallel vector_length(128)
 !$acc loop gang vector collapse(2)
@@ -4261,7 +4251,6 @@ contains
     end do
 !$acc end parallel
 !----------------------------------------------------------------------
-!$acc end data
     return
     end subroutine cududvn
 !---------------------------------------------------------

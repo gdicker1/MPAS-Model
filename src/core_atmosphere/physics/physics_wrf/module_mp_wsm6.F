@@ -179,7 +179,7 @@ CONTAINS
   REAL, DIMENSION( kts:kte ) :: re_qc, re_qi, re_qs
 
 
-!$acc data create(t, qci, qrs, qv1d, t1d, p1d, qr1d, qs1d, qg1d, dBZ, &
+!$acc declare create(t, qci, qrs, qv1d, t1d, p1d, qr1d, qs1d, qg1d, dBZ, &
 !$acc den1d, qc1d, qi1d, re_qc, re_qi, re_qs)
 
       DO j=jts,jte
@@ -285,7 +285,6 @@ CONTAINS
         enddo
 #endif
       ENDDO
-!$acc end data
   END SUBROUTINE wsm6
 !===================================================================
 !
@@ -515,7 +514,7 @@ CONTAINS
       conden(a,b,c,d,e) = (max(b,qmin)-c)/(1.+d*d/(rv*e)*c/(a*a))
 !
 !
-!$acc data create(rh, qs, rslope, rslope2, rslope3, rslopeb, qrs_tmp, falk, &
+!$acc declare create(rh, qs, rslope, rslope2, rslope3, rslopeb, qrs_tmp, falk, &
 !$acc fall, work1, fallc, falkc, work1c, work2c, workr, worka, den_tmp, delz_tmp, &
 !$acc pigen, pidep, pcond, prevp, psevp, pgevp, psdep, pgdep, praut, psaut, &
 !$acc pgaut, piacr, pracw, praci, pracs, psacw, psaci, psacr, pgacw, pgaci, &
@@ -583,11 +582,9 @@ CONTAINS
 !----------------------------------------------------------------
 !     compute the minor time steps.
 !
-!$acc parallel num_gangs(1) num_workers(1) vector_length(1)
       loops = max(nint(delt/dtcldcr),1)
       dtcld = delt/loops
       if(delt.le.dtcldcr) dtcld = delt
-!$acc end parallel
 !
       do loop = 1,loops
 !
@@ -627,7 +624,6 @@ CONTAINS
 ! Inline expansion for fpvs
 !         qs(i,k,1) = fpvs(t(i,k),0,rd,rv,cpv,cliq,cice,xlv0,xls,psat,t0c)
 !         qs(i,k,2) = fpvs(t(i,k),1,rd,rv,cpv,cliq,cice,xlv0,xls,psat,t0c)
-!$acc parallel num_gangs(1) num_workers(1) vector_length(1)
       hsub = xls
       hvap = xlv0
       cvap = cpv
@@ -638,7 +634,6 @@ CONTAINS
       dldti=cvap-cice
       xai=-dldti/rv
       xbi=xai+hsub/(rv*ttp)
-!$acc end parallel
 !$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2) private(tr)
       do k = kts, kte
@@ -1558,7 +1553,6 @@ CONTAINS
 ! Inline expansion for fpvs
 !         qs(i,k,1) = fpvs(t(i,k),0,rd,rv,cpv,cliq,cice,xlv0,xls,psat,t0c)
 !         qs(i,k,2) = fpvs(t(i,k),1,rd,rv,cpv,cliq,cice,xlv0,xls,psat,t0c)
-!$acc parallel num_gangs(1) num_workers(1) vector_length(1)
       hsub = xls
       hvap = xlv0
       cvap = cpv
@@ -1569,7 +1563,6 @@ CONTAINS
       dldti=cvap-cice
       xai=-dldti/rv
       xbi=xai+hsub/(rv*ttp)
-!$acc end parallel
 !$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2) private(tr)
       do k = kts, kte
@@ -1631,7 +1624,6 @@ CONTAINS
       rainprod2d = praut+pracw+praci+psaci+pgaci+psacw+pgacw+paacw+psaut
       evapprod2d = -(prevp+psevp+pgevp+psdep+pgdep)
 #endif
-!$acc end data
 
   END SUBROUTINE wsm62d
 ! ...................................................................
@@ -1822,7 +1814,7 @@ CONTAINS
       lamdas(x,y,z)= sqrt(sqrt(pidn0s*z/(x*y)))    ! (pidn0s*z/(x*y))**.25
       lamdag(x,y)=   sqrt(sqrt(pidn0g/(x*y)))      ! (pidn0g/(x*y))**.25
 !
-!$acc data create(n0sfac)
+!$acc declare create(n0sfac)
 !$acc parallel vector_length(32)
 !$acc loop gang vector collapse(2) private(supcol)
       do k = kts, kte
@@ -1874,7 +1866,6 @@ CONTAINS
         enddo
       enddo
 !$acc end parallel
-!$acc end data
   END subroutine slope_wsm6
 !-----------------------------------------------------------------------------
       subroutine slope_rain(qrs,den,denfac,t, &
@@ -2339,7 +2330,6 @@ n_loop : do n=1,iter+1
       end if
       enddo i_loop
 !$acc end parallel
-!!$acc end data
 
   END SUBROUTINE nislfv_rain_plm
 !-------------------------------------------------------------------
@@ -2968,7 +2958,7 @@ n_loop : do n=1,iter+1
 
       DOUBLE PRECISION:: cback, x, eta, f_d
       REAL, PARAMETER:: R=287.
-! !$acc data create(temp, pres, qv, rho, rr, rs, rg, &
+! !$acc declare create(temp, pres, qv, rho, rr, rs, rg, &
 ! !$acc ilamr, ilams, ilamg, N0_r, N0_s, N0_g, L_qr, L_qs, L_qg, &
 ! !$acc ze_rain, ze_snow, ze_graupel)
 !+---+
@@ -3125,7 +3115,6 @@ n_loop : do n=1,iter+1
   enddo
 !$acc end parallel
 
-! !$acc end data
       end subroutine refl10cm_wsm6_1
 
 END MODULE module_mp_wsm6

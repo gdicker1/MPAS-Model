@@ -2319,7 +2319,7 @@ CONTAINS
 !!!$acc               FLX4_2D,FVB_2D,FBUR_2D,FGSN_2D,UTYPE_URB2D,FRC_URB2D,UST_URB2D,INFXSRT,&
 !!!$acc               SFCHEADRT,SOLDRAIN)
 
-!$acc data create(HFX_PHY,QFX_PHY,XQNORM,XSDA_HFX,XSDA_QFX,FLX4,FVB,FBUR,FGSN,SOILW, &
+!$acc declare create(HFX_PHY,QFX_PHY,XQNORM,XSDA_HFX,XSDA_QFX,FLX4,FVB,FBUR,FGSN,SOILW, &
 !$acc             SLDPTH,SFCPRS,Q2K,Q2SAT,SFCTMP,ZLVL,LWDN,SOLDN,SOLNET,PRCP,SHDFAC, &
 !$acc             SHMIN,SHMAX,DQSDT2,SFCTSNO,E2SAT,Q2SATI,TBOT,SNOALB1,ALBBRD,EMBRD, &
 !$acc             Z0K,ALBEDOK,ETA,SHEAT,ETA_KINEMATIC,RUNOFF1,RUNOFF2,RUNOFF3,TH2,   &
@@ -2936,7 +2936,6 @@ CONTAINS
 !!!$acc update host(RC2,XLAI2)
    ENDDO JLOOP                                                          ! of J loop
 
-!$acc end data
 
 !!!$acc update host(TSK,HFX,QFX,LH,      &
 !!!$acc               GRDFLX,QSFC,CQS2,CHS,CHS2,SNOW,SNOWC,SNOWH,CANWAT,SMSTAV,SMSTOT,       &

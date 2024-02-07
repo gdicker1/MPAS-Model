@@ -134,7 +134,7 @@ contains
 !!!$acc               dusfcg,dvsfcg,var2d,oc12d,oa2d1,oa2d2,oa2d3,oa2d4,ol2d1,ol2d2,   &
 !!!$acc               ol2d3,ol2d4,sina,cosa,dx,kpbl2d)
 
-!$acc data create(delprsi,pdh,ugeo,vgeo,dudt,dvdt,dtaux,dtauy,dusfc,dvsfc,pdhi,oa4,ol4) &
+!$acc declare create(delprsi,pdh,ugeo,vgeo,dudt,dvdt,dtaux,dtauy,dusfc,dvsfc,pdhi,oa4,ol4) &
 !$acc      present(u3d,v3d,t3d,qv3d,p3d,p3di,pi3d,z,rublten,rvblten,dtaux3d,dtauy3d,&
 !$acc               dusfcg,dvsfcg,var2d,oc12d,oa2d1,oa2d2,oa2d3,oa2d4,ol2d1,ol2d2,   &
 !$acc               ol2d3,ol2d4,sina,cosa,dx,kpbl2d)
@@ -225,7 +225,6 @@ contains
 !$acc end parallel
    enddo
 !
-!$acc end data
 
 !!!$acc update host(rublten,rvblten,dtaux3d,dtauy3d,dusfcg,dvsfcg)
    end subroutine gwdo
@@ -377,7 +376,7 @@ contains
 !!!$acc update device(dudt,dvdt,dtaux2d,dtauy2d,u1,v1,t1,q1,del,prsi,prsl,prslk,zl,&
 !!!$acc               var,oc1,oa4,ol4,dusfc,dvsfc,dxmeter,kpbl)
 
-!$acc data create(ldrag,icrilv,flag,kloop1,coefm,taub, xn, yn, ubar, vbar, fr,&
+!$acc declare create(ldrag,icrilv,flag,kloop1,coefm,taub, xn, yn, ubar, vbar, fr,&
 !$acc             ulow, rulow, bnv, oa, ol, rhobar,dtfac, brvf, xlinv, delks,delks1,&
 !$acc             zlowtop,cleff,taup,velco,bnv2, usqj, taud, rho, vtk, vtj,kbl, klowtop,&
 !$acc             delx, dely,dxy4, dxy4p,dxy, dxyp, olp, od,taufb,komax) copyin(nwdir) &
@@ -893,8 +892,6 @@ contains
      dvsfc(i) = (-1./g_) * dvsfc(i)
    enddo
 !$acc end parallel
-!
-!$acc end data
 
 !!!$acc update host(dudt,dvdt,dtaux2d,dtauy2d,dusfc,dvsfc)
    return                                                            
