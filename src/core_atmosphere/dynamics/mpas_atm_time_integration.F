@@ -5285,9 +5285,11 @@ module atm_time_integration
       call mpas_pool_get_array_gpu(diag, 'exner', exner)
 
       call mpas_pool_get_array_gpu(diag, 'tend_rtheta_adv', tend_rtheta_adv)
+#ifdef DO_PHYSICS
       if (associated(tend_physics)) then
          call mpas_pool_get_array_gpu(tend_physics, 'rthdynten', rthdynten)
       end if
+#endif
 
       call mpas_pool_get_array_gpu(mesh, 'weightsOnEdge', weightsOnEdge)
       call mpas_pool_get_array_gpu(mesh, 'cellsOnEdge', cellsOnEdge)
