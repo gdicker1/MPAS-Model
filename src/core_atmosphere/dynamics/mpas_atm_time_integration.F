@@ -802,18 +802,18 @@ module atm_time_integration
       !
 !$acc parallel vector_length(128)
 !$acc loop gang vector collapse(2)
-      do cellsIdx=1,nCells+1
+      do edgesIdx=1,nEdges+1
         do levelsIdx=1,nVertLevels
-          tend_ru_physics(levelsIdx,cellsIdx) = 0.0_RKIND
-          tend_rtheta_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+          tend_ru_physics(levelsIdx,edgesIdx) = 0.0_RKIND
         end do
       end do
 !$acc end parallel
 !$acc parallel vector_length(128)
 !$acc loop gang vector collapse(2)
-      do edgesIdx=1,nEdges+1
+      do cellsIdx=1,nCells+1
         do levelsIdx=1,nVertLevels
-          tend_rho_physics(levelsIdx,edgesIdx) = 0.0_RKIND
+          tend_rtheta_physics(levelsIdx,cellsIdx) = 0.0_RKIND
+          tend_rho_physics(levelsIdx,cellsIdx) = 0.0_RKIND
         end do
       end do
 !$acc end parallel
