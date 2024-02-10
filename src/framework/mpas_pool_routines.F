@@ -4338,6 +4338,8 @@ module mpas_pool_routines
       real (kind=RKIND), dimension(:,:), pointer :: array
       integer, intent(in), optional :: timeLevel
 
+      integer :: oldLevel
+
       type (field2DReal), pointer :: field
       type (mpas_coupler_type), pointer :: coupler
 
@@ -4350,7 +4352,11 @@ module mpas_pool_routines
               array => field % array
 #ifdef CORE_ATMOSPHERE
               if (coupler % role_includes(ROLE_INTEGRATE)) then
+		      oldLevel = currentErrorLevel
+                      call mpas_pool_set_error_level(MPAS_POOL_WARN)
+                      call pool_mesg('GDD- get_array_2d_real_gpu: key '//trim(key)//' copyin to GPU')
                       !$acc enter data copyin(field%array)
+                      call mpas_pool_set_error_level(oldLevel)
               end if
 #endif
       end if
