@@ -40,6 +40,7 @@ module atm_time_integration
    ! Used in physics_get_tend
    real(kind=RKIND),dimension(:,:),allocatable:: tend_th 
 !$acc declare create(tend_th)
+
    ! Used in compute_dyn_tend
    real (kind=RKIND), allocatable, dimension(:,:) :: qtot 
 !$acc declare create(qtot)
@@ -177,7 +178,6 @@ module atm_time_integration
       call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
       call mpas_allocate_scratch_field(tend_ru_physicsField)
 #endif
-
 
 
       !
@@ -589,13 +589,6 @@ module atm_time_integration
       call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
       call mpas_allocate_scratch_field(tend_ru_physicsField)
 #endif
-
-      call mpas_pool_get_array_gpu(tend_physics, 'tend_rtheta_physics', tend_rtheta_physics)
-      ! tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
-      call mpas_pool_get_array_gpu(tend_physics, 'tend_rho_physics', tend_rho_physics)
-      ! tend_rho_physics(:,nCells+1) = 0.0_RKIND
-      call mpas_pool_get_array_gpu(tend_physics, 'tend_ru_physics', tend_ru_physics)
-      ! tend_ru_physics(:,nEdges+1) = 0.0_RKIND
 
       call mpas_pool_get_array_gpu(tend_physics, 'tend_rtheta_physics', tend_rtheta_physics)
 !      tend_rtheta_physics(:,nCells+1) = 0.0_RKIND
@@ -1710,6 +1703,7 @@ module atm_time_integration
       call mpas_deallocate_scratch_field(tend_ru_physicsField)
 #endif
 
+
       !
       !  split transport, at present RK3
       !
@@ -2162,7 +2156,6 @@ module atm_time_integration
 
       integer :: tmpnCells, tmpnEdges, tmpnVertLevels, tmpnum_scalars
       integer :: levelsIdx, scalarsIdx
-
 
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
          call mpas_timer_start('atm_advance_scalars')
@@ -4027,6 +4020,7 @@ module atm_time_integration
       implicit none
 
       integer, intent(in) :: nCells           ! for allocating stack variables
+      integer, intent(in) :: nEdges           ! for allocating stack variables
       integer, intent(in) :: num_scalars
       real (kind=RKIND), intent(in) :: dt
       integer, intent(in) :: edgeStart, edgeEnd
@@ -4048,7 +4042,6 @@ module atm_time_integration
       real (kind=RKIND), dimension(num_scalars,nVertLevels,nEdges+1), intent(inout) :: horiz_flux_arr
       real (kind=RKIND), dimension(:), intent(in) :: invAreaCell
       integer, dimension(:), intent(in) :: bdyMaskCell, bdyMaskEdge ! regional_MPAS addition
-      integer, intent(in) :: nEdges
 
       integer :: i, j, iCell, iAdvCell, iEdge, k, iScalar, cell1, cell2
       real (kind=RKIND) :: rho_zz_new_inv
@@ -4613,7 +4606,6 @@ module atm_time_integration
 !!!!$acc loop seq
 !!!            do i=1,nEdgesOnCell(iCell)
 !!!               iEdge = edgesOnCell(i,iCell)
-   
 !DIR$ IVDEP
 !!!!$acc loop vector
                do k=1,nVertLevels
