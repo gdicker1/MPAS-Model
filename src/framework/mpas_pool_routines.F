@@ -4225,34 +4225,28 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field0DReal), pointer :: field
-#ifdef MPAS_CAM_DYCORE
-      
-      call mpas_pool_get_field_0d_real(inPool, key, field, timeLevel)
 
-
-      nullify(scalar)
-      if (associated(field)) then 
-              scalar => field % scalar
-              !$acc enter data copyin(field%scalar)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
+
       
       call mpas_pool_get_field_0d_real(inPool, key, field, timeLevel)
-
-      coupler => field%block%domain%mpas_cpl
 
       nullify(scalar)
       if (associated(field)) then 
               scalar => field % scalar
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%scalar)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%scalar)
+#endif
 #endif
       end if
-#endif
    end subroutine mpas_pool_get_array_0d_real_gpu!}}}
 
 
@@ -4295,32 +4289,28 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field1DReal), pointer :: field
-#ifdef MPAS_CAM_DYCORE
-
-      call mpas_pool_get_field_1d_real(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-             !$acc enter data copyin(field%array)
-      end if
-#else
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
+
 
 
       call mpas_pool_get_field_1d_real(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
    end subroutine mpas_pool_get_array_1d_real_gpu!}}}
 
 
@@ -4364,32 +4354,28 @@ module mpas_pool_routines
 
       type (field2DReal), pointer :: field
 
-#ifdef MPAS_CAM_DYCORE
-
-      call mpas_pool_get_field_2d_real(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-                      !$acc enter data copyin(field%array)
-      end if
-#else
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_2d_real(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_2d_real_gpu!}}}
 
 
@@ -4434,32 +4420,28 @@ module mpas_pool_routines
 
       type (field3DReal), pointer :: field
 
-#ifdef MPAS_CAM_DYCORE
-      call mpas_pool_get_field_3d_real(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-              !$acc enter data copyin(field%array)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_3d_real(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_3d_real_gpu!}}}
 
 !-----------------------------------------------------------------------
@@ -4502,31 +4484,28 @@ module mpas_pool_routines
 
       type (field4DReal), pointer :: field
 
-#ifdef MPAS_CAM_DYCORE
-      call mpas_pool_get_field_4d_real(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-              !$acc enter data copyin(field%array)
-      end if
-#else
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_4d_real(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_4d_real_gpu!}}}
 
 
@@ -4570,32 +4549,28 @@ module mpas_pool_routines
 
       type (field5DReal), pointer :: field
 
-
-#ifdef MPAS_CAM_DYCORE
-      call mpas_pool_get_field_5d_real(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-                      !$acc enter data copyin(field%array)
-      end if
-#else
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_5d_real(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_5d_real_gpu!}}}
 
 
@@ -4639,33 +4614,28 @@ module mpas_pool_routines
 
       type (field0DInteger), pointer :: field
 
-#ifdef MPAS_CAM_DYCORE
-
-      call mpas_pool_get_field_0d_int(inPool, key, field, timeLevel)
-
-      nullify(scalar)
-      if (associated(field)) then 
-              scalar => field % scalar
-                      !$acc enter data copyin(field%scalar)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_0d_int(inPool, key, field, timeLevel)
 
       nullify(scalar)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               scalar => field % scalar
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%scalar)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%scalar)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_0d_int_gpu!}}}
 
 
@@ -4708,31 +4678,28 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field1DInteger), pointer :: field
-#ifdef MPAS_CAM_DYCORE
 
-      call mpas_pool_get_field_1d_int(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-                      !$acc enter data copyin(field%array)
-      end if
-#else
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
       call mpas_pool_get_field_1d_int(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_1d_int_gpu!}}}
 
 
@@ -4775,33 +4742,29 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field2DInteger), pointer :: field
-#ifdef MPAS_CAM_DYCORE
 
-      call mpas_pool_get_field_2d_int(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-                      !$acc enter data copyin(field%array)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_2d_int(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_2d_int_gpu!}}}
 
 
@@ -4844,33 +4807,29 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field3DInteger), pointer :: field
-#ifdef MPAS_CAM_DYCORE
 
-      call mpas_pool_get_field_3d_int(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-                      !$acc enter data copyin(field%array)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_3d_int(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_3d_int_gpu!}}}
 
 
@@ -4913,33 +4872,29 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field0DChar), pointer :: field
-#ifdef MPAS_CAM_DYCORE
 
-      call mpas_pool_get_field_0d_char(inPool, key, field, timeLevel)
-
-      nullify(string)
-      if (associated(field)) then 
-              string => field % scalar
-                      !$acc enter data copyin(field%scalar)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_0d_char(inPool, key, field, timeLevel)
 
       nullify(string)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               string => field % scalar
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%scalar)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%scalar)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_0d_char_gpu!}}}
 
 
@@ -4982,33 +4937,29 @@ module mpas_pool_routines
       integer, intent(in), optional :: timeLevel
 
       type (field1DChar), pointer :: field
-#ifdef MPAS_CAM_DYCORE
 
-      call mpas_pool_get_field_1d_char(inPool, key, field, timeLevel)
-
-      nullify(array)
-      if (associated(field)) then 
-              array => field % array
-                      !$acc enter data copyin(field%array)
-      end if
-#else
-
+#ifdef CORE_ATMOSPHERE
       type (mpas_coupler_type), pointer :: coupler
+#endif
 
 
       call mpas_pool_get_field_1d_char(inPool, key, field, timeLevel)
 
       nullify(array)
       if (associated(field)) then 
-              coupler => field%block%domain%mpas_cpl
               array => field % array
 #ifdef CORE_ATMOSPHERE
+              coupler => field%block%domain%mpas_cpl
               if (coupler % role_includes(ROLE_INTEGRATE)) then
                       !$acc enter data copyin(field%array)
               end if
+#else
+#ifdef MPAS_OPENACC
+              !$acc enter data copyin(field%array)
+#endif
 #endif
       end if
-#endif
+
    end subroutine mpas_pool_get_array_1d_char_gpu!}}}
 
 
