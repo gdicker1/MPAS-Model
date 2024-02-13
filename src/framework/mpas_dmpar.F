@@ -6477,8 +6477,8 @@ subroutine mpas_dmpar_get_exch_list(haloLayer, ownedListField, neededListField, 
       localMax=maxval(gpu_nList_send(:))
       do while(associated(commListPtr))
           tempRbuffer => commListPtr % rbuffer
-          !$acc data present(tempRbuffer, array, compactHaloInfo, dimsizes, nHaloLayers, gpu_nList_send, gpu_idx_send, gpu_bufferOffset_send) async(counter+1)
-          !$acc parallel default(none) num_workers(4) vector_length(128) async(counter+1) 
+          !$acc data present(tempRbuffer, array, compactHaloInfo, dimsizes, nHaloLayers, gpu_nList_send, gpu_idx_send, gpu_bufferOffset_send)
+          !$acc parallel default(none) num_workers(4) vector_length(128)
           !$acc loop independent collapse(2) gang worker vector
           do iHalo = 1, nHaloLayers
            do  i = 1, localMax
@@ -6515,8 +6515,8 @@ subroutine mpas_dmpar_get_exch_list(haloLayer, ownedListField, neededListField, 
       localMax=maxval(gpu_nList_recv(:))
       do while(associated(commListPtr))
         tempRbuffer => commListPtr % rbuffer
-        !$acc data present(tempRbuffer,array,compactHaloInfo,dimsizes, nHaloLayers,dimSizes,gpu_idx_recv,gpu_bufferOffset_recv,gpu_nList_recv) async(counter+1)
-        !$acc parallel num_workers(4) vector_length(128) async(counter+1)
+        !$acc data present(tempRbuffer,array,compactHaloInfo,dimsizes, nHaloLayers,dimSizes,gpu_idx_recv,gpu_bufferOffset_recv,gpu_nList_recv)
+        !$acc parallel num_workers(4) vector_length(128)
         !$acc loop independent collapse(2) gang worker vector
         do iHalo = 1, nHaloLayers
          do i = 1, localMax
@@ -7389,8 +7389,8 @@ subroutine mpas_dmpar_get_exch_list(haloLayer, ownedListField, neededListField, 
       localMax=maxval(gpu_nList_send(:))
       do while(associated(commListPtr))
           tempRbuffer => commListPtr % rbuffer
-          !$acc data present(tempRbuffer, array, compactHaloInfo, dimsizes, nHaloLayers, gpu_nList_send, gpu_idx_send, gpu_bufferOffset_send) async(counter+1)
-          !$acc parallel default(none) num_workers(4) vector_length(128) async(counter+1) 
+          !$acc data present(tempRbuffer, array, compactHaloInfo, dimsizes, nHaloLayers, gpu_nList_send, gpu_idx_send, gpu_bufferOffset_send)
+          !$acc parallel default(none) num_workers(4) vector_length(128)
           !$acc loop independent collapse(3) gang worker vector
           do iHalo = 1, nHaloLayers
            do  i = 1, localMax
@@ -7429,8 +7429,8 @@ subroutine mpas_dmpar_get_exch_list(haloLayer, ownedListField, neededListField, 
       localMax=maxval(gpu_nList_recv(:))
       do while(associated(commListPtr))
         tempRbuffer => commListPtr % rbuffer
-        !$acc data present(tempRbuffer,array,compactHaloInfo,dimsizes, nHaloLayers,dimSizes,gpu_idx_recv,gpu_bufferOffset_recv,gpu_nList_recv) async(counter+1)
-        !$acc parallel num_workers(4) vector_length(128) async(counter+1)
+        !$acc data present(tempRbuffer,array,compactHaloInfo,dimsizes, nHaloLayers,dimSizes,gpu_idx_recv,gpu_bufferOffset_recv,gpu_nList_recv)
+        !$acc parallel num_workers(4) vector_length(128)
         !$acc loop independent collapse(3) gang worker vector
         do iHalo = 1, nHaloLayers
          do i = 1, localMax 
@@ -8304,9 +8304,8 @@ subroutine mpas_dmpar_get_exch_list(haloLayer, ownedListField, neededListField, 
       localMax=maxval(gpu_nList_send(:))
       do while(associated(commListPtr))
           tempRbuffer => commListPtr % rbuffer
-          !$acc data present(tempRbuffer, array, compactHaloInfo, dimsizes, nHaloLayers, gpu_nList_send, gpu_idx_send, gpu_bufferOffset_send) async(counter+1)
-          !$acc parallel default(none) num_workers(8) vector_length(128) async(counter+1)
-          !!$acc kernels async(counter+1)
+          !$acc data present(tempRbuffer, array, compactHaloInfo, dimsizes, nHaloLayers, gpu_nList_send, gpu_idx_send, gpu_bufferOffset_send)
+          !$acc parallel default(none) num_workers(8) vector_length(128)
           !$acc loop independent collapse(4) gang worker vector
           do iHalo = 1, nHaloLayers
            do  i = 1, localMax
@@ -8347,10 +8346,9 @@ subroutine mpas_dmpar_get_exch_list(haloLayer, ownedListField, neededListField, 
       localMax=maxval(gpu_nList_recv(:))
       do while(associated(commListPtr))
         tempRbuffer => commListPtr % rbuffer
-        !$acc data present(tempRbuffer,array,compactHaloInfo,dimsizes, nHaloLayers,dimSizes,gpu_idx_recv,gpu_bufferOffset_recv,gpu_nList_recv) async(counter+1)
-        !$acc parallel num_workers(8) vector_length(128) async(counter+1)
+        !$acc data present(tempRbuffer,array,compactHaloInfo,dimsizes, nHaloLayers,dimSizes,gpu_idx_recv,gpu_bufferOffset_recv,gpu_nList_recv)
+        !$acc parallel num_workers(8) vector_length(128)
         !$acc loop independent collapse(4) gang worker vector
-        !!$acc kernels async(counter+1)
         do iHalo = 1, nHaloLayers
          do i = 1, localMax 
            do j = 1, dimSizes(2)
