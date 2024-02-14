@@ -11,11 +11,15 @@ module atm_core
    use mpas_pool_routines
    use mpas_dmpar
    use mpas_log, only : mpas_log_write, mpas_log_info
+   use mpas_io_units, only : mpas_new_unit, mpas_release_unit
+
+#ifndef MPAS_CAM_DYCORE
    use mpas_intracoupler, only : ROLE_INTEGRATE, ROLE_RADIATION
+   type (mpas_coupler_type), pointer :: mpas_cpl
+#endif !MPAS_CAM_DYCORE
 
    type (MPAS_Clock_type), pointer :: clock
 
-   type (mpas_coupler_type), pointer :: mpas_cpl
    integer, private :: cells_to_rad_handle, cells_from_rad_handle
 
 
@@ -30,8 +34,11 @@ module atm_core
       use mpas_atm_dimensions, only : mpas_atm_set_dims
       use mpas_atm_diagnostics_manager, only : mpas_atm_diag_setup
       use mpas_atm_threading, only : mpas_atm_threading_init
+#ifndef MPAS_CAM_DYCORE
       use mpas_intracoupler, only : MPAS_coupler_create_pairing
+#endif
       use atm_time_integration, only : mpas_atm_dynamics_init
+      use mpas_timer, only : mpas_timer_start, mpas_timer_stop
 
       implicit none
 
@@ -58,10 +65,15 @@ module atm_core
       integer :: i
       character (len=StrKIND) :: env_var
 
+      character (len=ShortStrKIND) :: init_stream_name
+      real (kind=R8KIND) :: input_start_time, input_stop_time
+
+
       ierr = 0
 
-
+#ifndef MPAS_CAM_DYCORE
       mpas_cpl => domain % mpas_cpl
+#endif
 
       block => domain % blocklist
       call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
@@ -72,6 +84,9 @@ module atm_core
       ! Write out role information to log file
       !
       call mpas_log_write('')
+#ifdef MPAS_CAM_DYCORE
+      call mpas_log_write('*** Role configuration is not considered for CAM runs: All tasks will run integration routines')
+#else
       if (mpas_cpl % role_is(ROLE_INTEGRATE) .or. &
           mpas_cpl % role_is(ROLE_RADIATION)) then
          call mpas_log_write('*** Role configuration: Radiation schemes will be run asynchronously and lagged'// &
@@ -94,8 +109,10 @@ module atm_core
       else
          call mpas_log_write('*** Role configuration: All tasks will run both radiation and other integration routines')
       end if
+#endif
       call mpas_log_write('')
 
+#ifndef MPAS_CAM_DYCORE
       if (mpas_cpl % role_is(ROLE_INTEGRATE)) then
          cells_to_rad_handle = MPAS_coupler_create_pairing(mpas_cpl, MPAS_COUPLER_OUTGOING, ROLE_RADIATION, indexToCellID, nCellsSolve)
          cells_from_rad_handle = MPAS_coupler_create_pairing(mpas_cpl, MPAS_COUPLER_INCOMING, ROLE_RADIATION, indexToCellID, nCellsSolve)
@@ -103,6 +120,7 @@ module atm_core
          cells_to_rad_handle = MPAS_coupler_create_pairing(mpas_cpl, MPAS_COUPLER_INCOMING, ROLE_INTEGRATE, indexToCellID, nCellsSolve)
          cells_from_rad_handle = MPAS_coupler_create_pairing(mpas_cpl, MPAS_COUPLER_OUTGOING, ROLE_INTEGRATE, indexToCellID, nCellsSolve)
       end if
+#endif
 
 
       !
@@ -142,18 +160,31 @@ module atm_core
       ! input alarms for both input and restart before reading any remaining
       ! input streams.
       !
+      call mpas_timer_start('read_ICs')
       if (config_do_restart) then
-         call MPAS_stream_mgr_read(domain % streamManager, streamID='restart', ierr=ierr)
+         init_stream_name = 'restart'
       else
-         call MPAS_stream_mgr_read(domain % streamManager, streamID='input', ierr=ierr)
+         init_stream_name = 'input'
       end if
+      call mpas_log_write('Reading initial state from '''//trim(init_stream_name)//''' stream')
+
+      call mpas_dmpar_get_time(input_start_time)
+      call MPAS_stream_mgr_read(domain % streamManager, streamID=trim(init_stream_name), ierr=ierr)
+      call mpas_dmpar_get_time(input_stop_time)
+      call mpas_timer_stop('read_ICs')
+
       if (ierr /= MPAS_STREAM_MGR_NOERR) then
          call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
          call mpas_log_write('Error reading initial conditions',                                                 messageType=MPAS_LOG_ERR)
          call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_CRIT)
       end if
+
+      call mpas_log_write(' Timing for read of '''//trim(init_stream_name)//''' stream: $r s', &
+                          realArgs=(/real(input_stop_time - input_start_time, kind=RKIND)/))
+
       call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='input', direction=MPAS_STREAM_INPUT, ierr=ierr)
       call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='restart', direction=MPAS_STREAM_INPUT, ierr=ierr)
+      call mpas_log_write(' ----- done reading initial state -----')
 
       !
       ! Read all other inputs
@@ -241,9 +272,16 @@ module atm_core
       call mpas_atm_diag_setup(domain % streamManager, domain % blocklist % configs, &
                                domain % blocklist % structs, domain % clock, domain % dminfo)
 
+      !
+      ! Prepare the dynamics for integration
+      !
+#ifdef MPAS_CAM_DYCORE
+      call mpas_atm_dynamics_init(domain)
+#else
 if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
       call mpas_atm_dynamics_init(domain)
-end if 
+end if
+#endif
 
    end function atm_core_init
 
@@ -267,6 +305,7 @@ end if
       character (len=StrKIND), pointer :: config_run_duration
       character (len=StrKIND), pointer :: config_stop_time
       character (len=StrKIND) :: startTimeStamp
+      integer :: iounit
 
 
       ierr = 0
@@ -278,9 +317,11 @@ end if
       call mpas_pool_get_config(configs, 'config_stop_time', config_stop_time)
 
       if(trim(config_start_time) == 'file') then
-         open(22,file=trim(config_restart_timestamp_name),form='formatted',status='old')
-         read(22,*) startTimeStamp
-         close(22)
+         call mpas_new_unit(iounit)
+         open(iounit,file=trim(config_restart_timestamp_name),form='formatted',status='old')
+         read(iounit,*) startTimeStamp
+         close(iounit)
+         call mpas_release_unit(iounit)
       else
         startTimeStamp = config_start_time
       end if
@@ -536,7 +577,7 @@ end if
       use mpas_kind_types
       use mpas_stream_manager
       use mpas_derived_types, only : MPAS_STREAM_LATEST_BEFORE, MPAS_STREAM_INPUT, MPAS_STREAM_INPUT_OUTPUT
-      use mpas_timer
+      use mpas_timer, only : mpas_timer_start, mpas_timer_stop
       use mpas_atm_boundaries, only : mpas_atm_update_bdy_tend
       use mpas_atm_diagnostics_manager, only : mpas_atm_diag_update, mpas_atm_diag_compute, mpas_atm_diag_reset
    
@@ -554,6 +595,7 @@ end if
       character(len=StrKIND) :: timeStamp
       character (len=StrKIND), pointer :: config_restart_timestamp_name
       integer :: itimestep
+      integer :: iounit
 
       integer :: stream_dir
       character(len=StrKIND) :: input_stream, read_time
@@ -565,17 +607,74 @@ end if
       real (kind=R8KIND) :: diag_start_time, diag_stop_time
       real (kind=R8KIND) :: input_start_time, input_stop_time
       real (kind=R8KIND) :: output_start_time, output_stop_time
-      
+
       ierr = 0
 
       clock => domain % clock
       mpas_log_info => domain % logInfo
-      
+
       ! Eventually, dt should be domain specific
       call mpas_pool_get_config(domain % blocklist % configs, 'config_dt', dt)
       call mpas_pool_get_config(domain % blocklist % configs, 'config_do_restart', config_do_restart)
       call mpas_pool_get_config(domain % blocklist % configs, 'config_restart_timestamp_name', config_restart_timestamp_name)
 
+#ifdef MPAS_CAM_DYCORE
+         ! Avoid writing a restart file at the initial time
+         call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='restart', direction=MPAS_STREAM_OUTPUT, ierr=ierr)
+
+         ! Also, for restart runs, avoid writing the initial history or diagnostics fields to avoid overwriting those from the preceding run
+         if (config_do_restart) then
+            call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='output', direction=MPAS_STREAM_OUTPUT, ierr=ierr)
+            call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='diagnostics', direction=MPAS_STREAM_OUTPUT, ierr=ierr)
+         end if
+
+         call mpas_dmpar_get_time(diag_start_time)
+
+         if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
+            block_ptr => domain % blocklist
+            do while (associated(block_ptr))
+               call mpas_pool_get_subpool(block_ptr % structs, 'state', state)
+               call mpas_pool_get_subpool(block_ptr % structs, 'diag', diag)
+#ifdef DO_PHYSICS
+               call mpas_pool_get_subpool(block_ptr % structs, 'diag_physics', diag_physics)
+#endif
+               call mpas_pool_get_subpool(block_ptr % structs, 'mesh', mesh)
+               call atm_compute_output_diagnostics(state, 1, diag, mesh)
+
+               block_ptr => block_ptr % next
+            end do
+         end if
+         call mpas_timer_start('diagnostic_fields')
+         call mpas_atm_diag_reset()
+         call mpas_atm_diag_update()
+         call mpas_atm_diag_compute()
+         call mpas_timer_stop('diagnostic_fields')
+
+         call mpas_dmpar_get_time(diag_stop_time)
+
+         call mpas_timer_start('stream_output')
+         call mpas_dmpar_get_time(output_start_time)
+         call mpas_stream_mgr_write(domain % streamManager, ierr=ierr)
+         call mpas_dmpar_get_time(output_stop_time)
+         call mpas_timer_stop('stream_output')
+         if (ierr /= MPAS_STREAM_MGR_NOERR .and. &
+             ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_FILE .and. &
+             ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_REC) then
+            call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
+            call mpas_log_write('Error writing one or more output streams',                                         messageType=MPAS_LOG_ERR)
+            call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_CRIT)
+         end if
+         if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
+            call mpas_log_write('Timing for diagnostic computation: $r s', realArgs=(/real(diag_stop_time - diag_start_time, kind=RKIND)/))
+            call mpas_log_write('Timing for stream output: $r s', realArgs=(/real(output_stop_time - output_start_time, kind=RKIND)/))
+         end if
+
+         call mpas_timer_start('diagnostic_fields')
+         call mpas_atm_diag_reset()
+         call mpas_timer_stop('diagnostic_fields')
+
+         call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)
+#else
       if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
          ! Avoid writing a restart file at the initial time
          call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='restart', direction=MPAS_STREAM_OUTPUT, ierr=ierr)
@@ -598,19 +697,23 @@ end if
 #endif
                call mpas_pool_get_subpool(block_ptr % structs, 'mesh', mesh)
                call atm_compute_output_diagnostics(state, 1, diag, mesh)
-   
+
                block_ptr => block_ptr % next
             end do
          end if
+         call mpas_timer_start('diagnostic_fields')
          call mpas_atm_diag_reset()
          call mpas_atm_diag_update()
          call mpas_atm_diag_compute()
+         call mpas_timer_stop('diagnostic_fields')
 
          call mpas_dmpar_get_time(diag_stop_time)
 
+         call mpas_timer_start('stream_output')
          call mpas_dmpar_get_time(output_start_time)
          call mpas_stream_mgr_write(domain % streamManager, ierr=ierr)
          call mpas_dmpar_get_time(output_stop_time)
+         call mpas_timer_stop('stream_output')
          if (ierr /= MPAS_STREAM_MGR_NOERR .and. &
              ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_FILE .and. &
              ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_REC) then
@@ -623,10 +726,13 @@ end if
             call mpas_log_write('Timing for stream output: $r s', realArgs=(/real(output_stop_time - output_start_time, kind=RKIND)/))
          end if
 
+         call mpas_timer_start('diagnostic_fields')
          call mpas_atm_diag_reset()
+         call mpas_timer_stop('diagnostic_fields')
 
          call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)
       end if
+#endif
 
       block_ptr => domain % blocklist
       call mpas_pool_get_subpool(block_ptr % structs, 'mesh', mesh)
@@ -663,8 +769,64 @@ end if
       do while (.not. mpas_is_clock_stop_time(clock))
 
          currTime = mpas_get_clock_time(clock, MPAS_NOW, ierr)
-         call mpas_get_time(curr_time=currTime, dateTimeString=timeStamp, ierr=ierr)         
+         call mpas_get_time(curr_time=currTime, dateTimeString=timeStamp, ierr=ierr)
 
+#ifdef MPAS_CAM_DYCORE
+            call mpas_log_write('')
+            call mpas_log_write('Begin timestep '//trim(timeStamp))
+
+            !
+            ! Read future boundary state and compute boundary tendencies
+            !
+            if (config_apply_lbcs .and. &
+                MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID='lbc_in', direction=MPAS_STREAM_INPUT, ierr=ierr)) then
+               block_ptr => domain % blocklist
+               do while (associated(block_ptr))
+                  call mpas_atm_update_bdy_tend(clock, domain % streamManager, block_ptr, .false., ierr)
+                  if (ierr /= 0) then
+                     call mpas_log_write('Failed to process LBC data at next time after '//trim(timeStamp), messageType=MPAS_LOG_ERR)
+                     return
+                  end if
+
+                  block_ptr => block_ptr % next
+               end do
+            end if
+
+            ! Regardless of whether boundary tendencies were updated, above, we do not want to read the 'lbc_in' stream
+            ! as a general input stream, below.
+            call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='lbc_in', direction=MPAS_STREAM_INPUT, ierr=ierr)
+
+
+            !
+            ! Read external field updates
+            !
+            call MPAS_stream_mgr_begin_iteration(domain % streamManager, ierr=ierr)
+            do while (MPAS_stream_mgr_get_next_stream(domain % streamManager, streamID=input_stream, directionProperty=stream_dir))
+               if (stream_dir == MPAS_STREAM_INPUT .or. stream_dir == MPAS_STREAM_INPUT_OUTPUT) then
+                  if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID=input_stream, &
+                                                     direction=MPAS_STREAM_INPUT, ierr=ierr)) then
+                     call mpas_timer_start('stream_input')
+                     call mpas_dmpar_get_time(input_start_time)
+                     call MPAS_stream_mgr_read(domain % streamManager, streamID=input_stream, whence=MPAS_STREAM_LATEST_BEFORE, &
+                                               actualWhen=read_time, ierr=ierr)
+                     call mpas_dmpar_get_time(input_stop_time)
+                     call mpas_timer_stop('stream_input')
+                     if (ierr /= MPAS_STREAM_MGR_NOERR) then
+                        call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
+                        call mpas_log_write('Error reading input stream '//trim(input_stream),                                  messageType=MPAS_LOG_ERR)
+                        call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_CRIT)
+                     end if
+
+                     call mpas_log_write('----------------------------------------------------------------------')
+                     call mpas_log_write('  Read '''//trim(input_stream)//''' input stream valid at '//trim(read_time))
+                     call mpas_log_write('   Timing for stream input: $r s', realArgs=(/real(input_stop_time - input_start_time, kind=RKIND)/))
+                     call mpas_log_write('----------------------------------------------------------------------')
+
+                     call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID=input_stream, direction=MPAS_STREAM_INPUT, ierr=ierr)
+                  end if
+               end if
+            end do
+#else
          if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
             call mpas_log_write('')
             call mpas_log_write('Begin timestep '//trim(timeStamp))
@@ -690,6 +852,7 @@ end if
             ! as a general input stream, below.
             call MPAS_stream_mgr_reset_alarms(domain % streamManager, streamID='lbc_in', direction=MPAS_STREAM_INPUT, ierr=ierr)
 
+
             !
             ! Read external field updates
             !
@@ -698,10 +861,12 @@ end if
                if (stream_dir == MPAS_STREAM_INPUT .or. stream_dir == MPAS_STREAM_INPUT_OUTPUT) then
                   if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID=input_stream, &
                                                      direction=MPAS_STREAM_INPUT, ierr=ierr)) then
+                     call mpas_timer_start('stream_input')
                      call mpas_dmpar_get_time(input_start_time)
                      call MPAS_stream_mgr_read(domain % streamManager, streamID=input_stream, whence=MPAS_STREAM_LATEST_BEFORE, &
                                                actualWhen=read_time, ierr=ierr)
                      call mpas_dmpar_get_time(input_stop_time)
+                     call mpas_timer_stop('stream_input')
                      if (ierr /= MPAS_STREAM_MGR_NOERR) then
                         call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
                         call mpas_log_write('Error reading input stream '//trim(input_stream),                                  messageType=MPAS_LOG_ERR)
@@ -718,24 +883,105 @@ end if
                end if
             end do
          end if
+#endif
 
          call mpas_timer_start("time integration")
          call mpas_dmpar_get_time(integ_start_time)
          call atm_do_timestep(domain, dt, itimestep)
          call mpas_dmpar_get_time(integ_stop_time)
-         call mpas_timer_stop("time integration")   
+         call mpas_timer_stop("time integration")
          call mpas_log_write(' Timing for integration step: $r s', realArgs=(/real(integ_stop_time - integ_start_time, kind=RKIND)/))
 
          ! Move time level 2 fields back into time level 1 for next time step
          call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
          call mpas_pool_shift_time_levels(state)
-         
+
          ! Advance clock before writing output
          itimestep = itimestep + 1
          call mpas_advance_clock(clock)
          currTime = mpas_get_clock_time(clock, MPAS_NOW, ierr)
 
+#ifdef MPAS_CAM_DYCORE
+            call mpas_dmpar_get_time(diag_start_time)
 
+            !
+            ! Write any output streams that have alarms ringing, after computing diagnostics fields
+            !
+            call mpas_get_time(curr_time=currTime, dateTimeString=timeStamp, ierr=ierr)
+            if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
+              block_ptr => domain % blocklist
+              do while (associated(block_ptr))
+                 call mpas_pool_get_subpool(block_ptr % structs, 'state', state)
+                 call mpas_pool_get_subpool(block_ptr % structs, 'diag', diag)
+#ifdef DO_PHYSICS
+                 call mpas_pool_get_subpool(block_ptr % structs, 'diag_physics', diag_physics)
+                 call mpas_pool_get_subpool(block_ptr % structs, 'tend_physics', tend_physics)
+#endif
+                 call mpas_pool_get_subpool(block_ptr % structs, 'mesh', mesh)
+                 call mpas_pool_get_subpool(block_ptr % structs, 'tend', tend)
+                 call atm_compute_output_diagnostics(state, 1, diag, mesh)
+
+                 block_ptr => block_ptr % next
+              end do
+            end if
+
+            call mpas_timer_start('diagnostic_fields')
+            call mpas_atm_diag_update()
+            call mpas_atm_diag_compute()
+            call mpas_timer_stop('diagnostic_fields')
+            call mpas_dmpar_get_time(diag_stop_time)
+
+            call mpas_timer_start('stream_output')
+            call mpas_dmpar_get_time(output_start_time)
+            call mpas_stream_mgr_write(domain % streamManager, ierr=ierr)
+            call mpas_dmpar_get_time(output_stop_time)
+            call mpas_timer_stop('stream_output')
+            if (ierr /= MPAS_STREAM_MGR_NOERR .and. &
+                ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_FILE .and. &
+                ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_REC) then
+               call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
+               call mpas_log_write('Error writing one or more output streams',                                         messageType=MPAS_LOG_ERR)
+               call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_CRIT)
+            end if
+            if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
+               call mpas_log_write('Timing for diagnostic computation: $r s', realArgs=(/real(diag_stop_time - diag_start_time, kind=RKIND)/))
+               call mpas_log_write('Timing for stream output: $r s', realArgs=(/real(output_stop_time - output_start_time, kind=RKIND)/))
+            end if
+
+            ! reset any diagnostics here
+
+            if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID='diagnostics', direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
+               block_ptr => domain % blocklist
+               do while (associated(block_ptr))
+
+#ifdef DO_PHYSICS
+                  call mpas_pool_get_subpool(block_ptr % structs, 'diag_physics', diag_physics)
+#endif
+                  call atm_reset_diagnostics(diag_physics)
+
+                  block_ptr => block_ptr % next
+               end do
+            end if
+
+
+            ! Only after we've successfully written the restart file should we we
+            !    write the restart_timestamp file
+            if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID='restart', direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
+               if (domain % dminfo % my_proc_id == 0) then
+                  call mpas_new_unit(iounit)
+                  open(iounit,file=trim(config_restart_timestamp_name),form='formatted',status='replace')
+                  write(iounit,*) trim(timeStamp)
+                  close(iounit)
+                  call mpas_release_unit(iounit)
+               end if
+            end if
+
+            call mpas_timer_start('diagnostic_fields')
+            call mpas_atm_diag_reset()
+            call mpas_timer_stop('diagnostic_fields')
+
+            call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)
+#else
          if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
             call mpas_dmpar_get_time(diag_start_time)
 
@@ -760,13 +1006,17 @@ end if
               end do
             end if
 
+            call mpas_timer_start('diagnostic_fields')
             call mpas_atm_diag_update()
             call mpas_atm_diag_compute()
+            call mpas_timer_stop('diagnostic_fields')
             call mpas_dmpar_get_time(diag_stop_time)
 
+            call mpas_timer_start('stream_output')
             call mpas_dmpar_get_time(output_start_time)
             call mpas_stream_mgr_write(domain % streamManager, ierr=ierr)
             call mpas_dmpar_get_time(output_stop_time)
+            call mpas_timer_stop('stream_output')
             if (ierr /= MPAS_STREAM_MGR_NOERR .and. &
                 ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_FILE .and. &
                 ierr /= MPAS_STREAM_MGR_ERR_CLOBBER_REC) then
@@ -784,12 +1034,12 @@ end if
             if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID='diagnostics', direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
                block_ptr => domain % blocklist
                do while (associated(block_ptr))
-   
+
 #ifdef DO_PHYSICS
                   call mpas_pool_get_subpool(block_ptr % structs, 'diag_physics', diag_physics)
 #endif
                   call atm_reset_diagnostics(diag_physics)
-   
+
                   block_ptr => block_ptr % next
                end do
             end if
@@ -799,17 +1049,21 @@ end if
             !    write the restart_timestamp file
             if (MPAS_stream_mgr_ringing_alarms(domain % streamManager, streamID='restart', direction=MPAS_STREAM_OUTPUT, ierr=ierr)) then
                if (domain % dminfo % my_proc_id == 0) then
-                  open(22,file=trim(config_restart_timestamp_name),form='formatted',status='replace')
-                  write(22,*) trim(timeStamp)
-                  close(22)
+                  call mpas_new_unit(iounit)
+                  open(iounit,file=trim(config_restart_timestamp_name),form='formatted',status='replace')
+                  write(iounit,*) trim(timeStamp)
+                  close(iounit)
+                  call mpas_release_unit(iounit)
                end if
             end if
 
+            call mpas_timer_start('diagnostic_fields')
             call mpas_atm_diag_reset()
+            call mpas_timer_stop('diagnostic_fields')
 
             call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=ierr)
          end if
-
+#endif
       end do
    
    end function atm_core_run
@@ -928,6 +1182,8 @@ end if
       xtime_s = (s + s_n / s_d)
 
 
+!Physics is not enabled for CAM runs. Add DO_PHYSICS to build flags to
+! enable mpas physics for CAM runs
 #ifdef DO_PHYSICS
       !proceed with physics if moist_physics is set to true:
       if (moist_physics) then
@@ -937,9 +1193,13 @@ end if
       endif
 #endif
 
+#ifdef MPAS_CAM_DYCORE
+      call atm_timestep(domain, dt, currTime, itimestep)
+#else
       if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
          call atm_timestep(domain, dt, currTime, itimestep)
       end if
+#endif
 
    end subroutine atm_do_timestep
    
@@ -961,12 +1221,24 @@ end if
       type (domain_type), intent(inout) :: domain
       type (block_type), pointer :: block_ptr 
       integer :: ierr
+#ifndef MPAS_CAM_DYCORE
       mpas_cpl => domain % mpas_cpl
-
+#endif
       ierr = 0
 
       clock => domain % clock
       mpas_log_info => domain % logInfo
+
+      !
+      ! Finalize the dynamics
+      !
+#ifdef MPAS_CAM_DYCORE
+         call mpas_atm_dynamics_finalize(domain)
+#else
+if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
+      call mpas_atm_dynamics_finalize(domain)
+end if
+#endif
 
       call mpas_atm_diag_cleanup()
 
@@ -981,10 +1253,6 @@ end if
             block_ptr => block_ptr%next
          end do
 #endif
-
-if (mpas_cpl % role_includes(ROLE_INTEGRATE)) then
-      call mpas_atm_dynamics_finalize(domain)
-end if 
 
       !
       ! Finalize threading

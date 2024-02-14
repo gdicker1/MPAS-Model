@@ -336,6 +336,14 @@ module init_atm_core_interface
 
          initial_conds = .false.   ! Also, turn off the initial_conds package to avoid writing the IC "output" stream
 
+      else if (config_init_case == 13) then
+         gwd_stage_in = .false.
+         gwd_stage_out = .false.
+         vertical_stage_in = .false.
+         vertical_stage_out = .true.
+         met_stage_in = .false.
+         met_stage_out = .false.
+
       else
          gwd_stage_in = .false.
          gwd_stage_out = .false.
@@ -441,13 +449,44 @@ module init_atm_core_interface
       iErr = ior(iErr, local_err)
 
       call mpas_log_write('')
-#ifdef SINGLE_PRECISION
-      call mpas_log_write('Using default single-precision reals')
+      call mpas_log_write('MPAS Init-Atmosphere Version '//trim(domain % core % modelVersion))
+      call mpas_log_write('')
+      call mpas_log_write('')
+      call mpas_log_write('Output from ''git describe --dirty'': '//trim(domain % core % git_version))
+      call mpas_log_write('')
+      call mpas_log_write('Compile-time options:')
+      call mpas_log_write('  Build target: '//trim(domain % core % build_target))
+      call mpas_log_write('  OpenMP support: ' // &
+#ifdef MPAS_OPENMP
+                          'yes')
 #else
-      call mpas_log_write('Using default double-precision reals')
+                          'no')
+#endif
+      call mpas_log_write('  OpenACC support: ' // &
+#ifdef MPAS_OPENACC
+                          'yes')
+#else
+                          'no')
+#endif
+      call mpas_log_write('  Default real precision: ' // &
+#ifdef SINGLE_PRECISION
+                          'single')
+#else
+                          'double')
+#endif
+      call mpas_log_write('  Compiler flags: ' // &
+#ifdef MPAS_DEBUG
+                          'debug')
+#else
+                          'optimize')
+#endif
+      call mpas_log_write('  PIO version: ' // &
+#ifdef USE_PIO2
+                          '2.x')
+#else
+                          '1.x')
 #endif
       call mpas_log_write('')
-
 
    end function init_atm_setup_log!}}}
 

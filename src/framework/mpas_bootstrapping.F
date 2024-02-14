@@ -85,7 +85,7 @@ module mpas_bootstrapping
       type (domain_type), pointer :: domain
       character(len=*), intent(in) :: mesh_filename
       integer, intent(in) :: mesh_iotype
-      type (file_desc_t), pointer, optional :: pio_file_desc
+      type (file_desc_t), intent(inout), optional :: pio_file_desc
 
       type (block_type), pointer :: readingBlock
 
@@ -396,8 +396,9 @@ module mpas_bootstrapping
       call mpas_deallocate_field(indexToCellIDField)
       call mpas_deallocate_field(indexToEdgeIDField)
       call mpas_deallocate_field(indexToVertexIDField)
-      call mpas_deallocate_field(cellsOnCellField)
 
+      call mpas_deallocate_field(nEdgesOnCellField)
+      call mpas_deallocate_field(cellsOnCellField)
       call mpas_deallocate_field(edgesOnCellField)
       call mpas_deallocate_field(verticesOnCellField)
       call mpas_deallocate_field(cellsOnEdgeField)
@@ -449,7 +450,7 @@ module mpas_bootstrapping
       implicit none
 
       type (domain_type), pointer :: domain
-      type (file_desc_t), pointer, optional :: pio_file_desc
+      type (file_desc_t), intent(inout), optional :: pio_file_desc
 
       type (mpas_pool_type), pointer :: readableDimensions
       type (mpas_pool_type), pointer :: streamDimensions
@@ -615,6 +616,15 @@ module mpas_bootstrapping
                            end if
                         else
                            call mpas_log_write('       ' // trim(poolItr % memberName) // ' *** not found in stream ***')
+                           call mpas_log_write('')
+                           call mpas_log_write("At least one fields to be read from the '" // trim(streamName) &
+                                               // "' stream is dimensioned", messageType=MPAS_LOG_ERR)
+                           call mpas_log_write("by '" // trim(poolItr % memberName) // "', but the '" &
+                                               // trim(poolItr % memberName) // "' dimension is not defined", &
+                                               messageType=MPAS_LOG_ERR)
+                           call mpas_log_write('in the file '//trim(streamFilename), messageType=MPAS_LOG_ERR)
+                           call mpas_log_write("Please check the input file(s) to be read by the '" // trim(streamName) &
+                                               // "' input stream.", messageType=MPAS_LOG_CRIT)
                         end if
 
                      end if
