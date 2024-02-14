@@ -52,10 +52,12 @@ module atm_core_interface
       core % setup_decomposed_dimensions => atm_setup_decomposed_dimensions
       core % setup_block => atm_setup_block
       core % setup_namelist => atm_setup_namelists
+#ifndef MPAS_CAM_DYCORE
       core % component_role => atm_component_role
       core % component_role_leader => atm_component_role_leader
       core % component_role_is => atm_component_role_is
       core % component_role_includes => atm_component_role_includes
+#endif MPAS_CAM_DYCORE
 
       core % Conventions = 'MPAS'
       core % source = 'MPAS'
@@ -65,6 +67,7 @@ module atm_core_interface
    end subroutine atm_setup_core
 
 
+#ifndef MPAS_CAM_DYCORE
    !***********************************************************************
    !
    !  routine atm_component_role
@@ -325,6 +328,7 @@ module atm_core_interface
       atm_component_role_includes = (iand(self % role(), role) == role)
 
    end function atm_component_role_includes
+#endif !MPAS_CAM_DYCORE
 
 
    !***********************************************************************
@@ -517,8 +521,9 @@ module atm_core_interface
 
       ! Local variables
       integer :: local_err
+#ifndef MPAS_CAM_DYCORE
       type (mpas_coupler_type), pointer :: mpas_cpl
-
+#endif
       iErr = 0
 
       ! Initialize log manager
@@ -532,19 +537,57 @@ module atm_core_interface
       !
       ! Make log filenames specific to the role of each MPI task
       !
+#ifdef MPAS_CAM_DYCORE      
+
+      write(logInfo % outputLog % filename, '(a,i2.2,a,i4.4,a)') 'log.atmosphere.', domain % dminfo % my_proc_id, '.out'
+      write(logInfo % errorLog % filename, '(a,i2.2,a,i4.4,a)') 'log.atmosphere.', domain % dminfo % my_proc_id, '.err'
+
+#else
       mpas_cpl => domain % mpas_cpl
       write(logInfo % outputLog % filename, '(a,i2.2,a,i4.4,a)') 'log.atmosphere.role', mpas_cpl % role(), '.', domain % dminfo % my_proc_id, '.out'
       write(logInfo % errorLog % filename, '(a,i2.2,a,i4.4,a)') 'log.atmosphere.role', mpas_cpl % role(), '.', domain % dminfo % my_proc_id, '.err'
-
+#endif
       ! After core has had a chance to modify log defaults, open the output log
       call mpas_log_open(err=local_err)
       iErr = ior(iErr, local_err)
 
       call mpas_log_write('')
-#ifdef SINGLE_PRECISION
-      call mpas_log_write('Using default single-precision reals')
+      call mpas_log_write('MPAS-Atmosphere Version '//trim(domain % core % modelVersion))
+      call mpas_log_write('')
+      call mpas_log_write('')
+      call mpas_log_write('Output from ''git describe --dirty'': '//trim(domain % core % git_version))
+      call mpas_log_write('')
+      call mpas_log_write('Compile-time options:')
+      call mpas_log_write('  Build target: '//trim(domain % core % build_target))
+      call mpas_log_write('  OpenMP support: ' // &
+#ifdef MPAS_OPENMP
+                          'yes')
 #else
-      call mpas_log_write('Using default double-precision reals')
+                          'no')
+#endif
+      call mpas_log_write('  OpenACC support: ' // &
+#ifdef MPAS_OPENACC
+                          'yes')
+#else
+                          'no')
+#endif
+      call mpas_log_write('  Default real precision: ' // &
+#ifdef SINGLE_PRECISION
+                          'single')
+#else
+                          'double')
+#endif
+      call mpas_log_write('  Compiler flags: ' // &
+#ifdef MPAS_DEBUG
+                          'debug')
+#else
+                          'optimize')
+#endif
+      call mpas_log_write('  PIO version: ' // &
+#ifdef USE_PIO2
+                          '2.x')
+#else
+                          '1.x')
 #endif
       call mpas_log_write('')
 
