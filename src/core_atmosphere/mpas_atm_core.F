@@ -60,7 +60,6 @@ module atm_core
       integer :: i
       character (len=StrKIND) :: env_var
 
-      integer, pointer :: nVertLevels, maxEdges, maxEdges2, num_scalars
       character (len=ShortStrKIND) :: init_stream_name
       real (kind=R8KIND) :: input_start_time, input_stop_time
 
