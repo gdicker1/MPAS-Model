@@ -216,7 +216,7 @@ module test_core
       ! Run mpas_test_openacc
       !
       #ifdef MPAS_OPENACC
-      iErr = mpas_test_openacc(domain % dminfo)
+      iErr = mpas_test_openacc(domain)
       if (iErr == 0) then
           call mpas_log_write('All tests PASSED')
       else
