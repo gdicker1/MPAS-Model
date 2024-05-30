@@ -15,7 +15,7 @@ module mpas_test_core_openacc
     contains
 
     !-----------------------------------------------------------------------
-    !  routine mpas_test_openacc
+    !  function mpas_test_openacc
     !
     !> \brief Main driver for tests of OpenACC functionality in MPAS
     !> \author G. Dylan Dickerson
@@ -50,15 +50,6 @@ module mpas_test_core_openacc
 
         call mpas_log_write('--- Begin OpenACC tests')
 
-        routine_name = 'openacc_test_stub'
-        ierr = openacc_test_stub(domain % dminfo)
-        if (ierr == 0) then
-            call mpas_log_write('   '//trim(routine_name)//' - PASSED')
-        else
-            ierr_count = ierr_count + 1
-            call mpas_log_write('   '//trim(routine_name)//' - FAILED')
-        end if
-
         routine_name = 'openacc_test_rep_arrs'
         ierr = openacc_test_rep_arrs(domain)
         if (ierr == 0) then
@@ -67,7 +58,6 @@ module mpas_test_core_openacc
             ierr_count = ierr_count + 1
             call mpas_log_write('   '//trim(routine_name)//' - FAILED')
         end if
-        call mpas_log_write('--- End OpenACC tests')
 
         ! Deallocate any dynamic vars here
 
@@ -368,45 +358,5 @@ module mpas_test_core_openacc
         !$acc exit data copyout(diff)
 
     end subroutine diff_arrs
-
-
-    !-----------------------------------------------------------------------
-    !  routine openacc_test_stub
-    !
-    !> \brief Stub function as a placeholder for later tests
-    !> \author G. Dylan Dickerson
-    !> \date   14 May 2024
-    !> \details
-    !>  This routine acts similarly to how the implemented routines
-    !>  should.
-    !>
-    !>  Return value: The total number of test that failed on any MPI rank.
-    !
-    !-----------------------------------------------------------------------
-    function openacc_test_stub(dminfo) result(ierr_count)
-
-        use mpas_derived_types, only : dm_info
-        use mpas_kind_types, only : StrKIND
-        use mpas_dmpar, only : mpas_dmpar_max_int
-
-        implicit none
-
-        ! Arguments
-        type (dm_info), intent(inout) :: dminfo
-
-        ! Return value
-        integer :: ierr_count
-
-
-        ierr_count = 0
-
-        #ifdef MPAS_OPENACC
-        call mpas_log_write('   in openacc_test_stub and MPAS_OPENACC is defined')
-        #else
-        call mpas_log_write('ERROR: in openacc_test_stub and MPAS_OPENACC is not defined')
-        ierr_count = ierr_count + 1
-        #endif
-
-    end function openacc_test_stub
 
 end module mpas_test_core_openacc
