@@ -234,43 +234,43 @@ module atm_time_integration
       call mpas_pool_get_subpool(domain % blocklist % structs, 'mesh', mesh)
 
       call mpas_pool_get_array(mesh, 'dvEdge', dvEdge)
-      !$acc enter data copyin(dvEdge)
+      !commented !$acc enter data copyin(dvEdge)
 
       call mpas_pool_get_array(mesh, 'cellsOnCell', cellsOnCell)
-      !$acc enter data copyin(cellsOnCell)
+      !commented !$acc enter data copyin(cellsOnCell)
 
       call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
-      !$acc enter data copyin(cellsOnEdge)
+      !commented !$acc enter data copyin(cellsOnEdge)
 
       call mpas_pool_get_array(mesh, 'advCellsForEdge', advCellsForEdge)
-      !$acc enter data copyin(advCellsForEdge)
+      !commented !$acc enter data copyin(advCellsForEdge)
 
       call mpas_pool_get_array(mesh, 'edgesOnCell', edgesOnCell)
-      !$acc enter data copyin(edgesOnCell)
+      !commented !$acc enter data copyin(edgesOnCell)
 
       call mpas_pool_get_array(mesh, 'nAdvCellsForEdge', nAdvCellsForEdge)
-      !$acc enter data copyin(nAdvCellsForEdge)
+      !commented !$acc enter data copyin(nAdvCellsForEdge)
 
       call mpas_pool_get_array(mesh, 'nEdgesOnCell', nEdgesOnCell)
-      !$acc enter data copyin(nEdgesOnCell)
+      !commented !$acc enter data copyin(nEdgesOnCell)
 
       call mpas_pool_get_array(mesh, 'adv_coefs', adv_coefs)
-      !$acc enter data copyin(adv_coefs)
+      !commented !$acc enter data copyin(adv_coefs)
 
       call mpas_pool_get_array(mesh, 'adv_coefs_3rd', adv_coefs_3rd)
-      !$acc enter data copyin(adv_coefs_3rd)
+      !commented !$acc enter data copyin(adv_coefs_3rd)
 
       call mpas_pool_get_array(mesh, 'edgesOnCell_sign', edgesOnCell_sign)
-      !$acc enter data copyin(edgesOnCell_sign)
+      !commented !$acc enter data copyin(edgesOnCell_sign)
 
       call mpas_pool_get_array(mesh, 'invAreaCell', invAreaCell)
-      !$acc enter data copyin(invAreaCell)
+      !commented !$acc enter data copyin(invAreaCell)
 
       call mpas_pool_get_array(mesh, 'bdyMaskCell', bdyMaskCell)
-      !$acc enter data copyin(bdyMaskCell)
+      !commented !$acc enter data copyin(bdyMaskCell)
 
       call mpas_pool_get_array(mesh, 'bdyMaskEdge', bdyMaskEdge)
-      !$acc enter data copyin(bdyMaskEdge)
+      !commented !$acc enter data copyin(bdyMaskEdge)
 #endif
 
    end subroutine mpas_atm_dynamics_init
@@ -341,43 +341,43 @@ module atm_time_integration
       call mpas_pool_get_subpool(domain % blocklist % structs, 'mesh', mesh)
 
       call mpas_pool_get_array(mesh, 'dvEdge', dvEdge)
-      !$acc exit data delete(dvEdge)
+      !commented !$acc exit data delete(dvEdge)
 
       call mpas_pool_get_array(mesh, 'cellsOnCell', cellsOnCell)
-      !$acc exit data delete(cellsOnCell)
+      !commented !$acc exit data delete(cellsOnCell)
 
       call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
-      !$acc exit data delete(cellsOnEdge)
+      !commented !$acc exit data delete(cellsOnEdge)
 
       call mpas_pool_get_array(mesh, 'advCellsForEdge', advCellsForEdge)
-      !$acc exit data delete(advCellsForEdge)
+      !commented !$acc exit data delete(advCellsForEdge)
 
       call mpas_pool_get_array(mesh, 'edgesOnCell', edgesOnCell)
-      !$acc exit data delete(edgesOnCell)
+      !commented !$acc exit data delete(edgesOnCell)
 
       call mpas_pool_get_array(mesh, 'nAdvCellsForEdge', nAdvCellsForEdge)
-      !$acc exit data delete(nAdvCellsForEdge)
+      !commented !$acc exit data delete(nAdvCellsForEdge)
 
       call mpas_pool_get_array(mesh, 'nEdgesOnCell', nEdgesOnCell)
-      !$acc exit data delete(nEdgesOnCell)
+      !commented !$acc exit data delete(nEdgesOnCell)
 
       call mpas_pool_get_array(mesh, 'adv_coefs', adv_coefs)
-      !$acc exit data delete(adv_coefs)
+      !commented !$acc exit data delete(adv_coefs)
 
       call mpas_pool_get_array(mesh, 'adv_coefs_3rd', adv_coefs_3rd)
-      !$acc exit data delete(adv_coefs_3rd)
+      !commented !$acc exit data delete(adv_coefs_3rd)
 
       call mpas_pool_get_array(mesh, 'edgesOnCell_sign', edgesOnCell_sign)
-      !$acc exit data delete(edgesOnCell_sign)
+      !commented !$acc exit data delete(edgesOnCell_sign)
 
       call mpas_pool_get_array(mesh, 'invAreaCell', invAreaCell)
-      !$acc exit data delete(invAreaCell)
+      !commented !$acc exit data delete(invAreaCell)
 
       call mpas_pool_get_array(mesh, 'bdyMaskCell', bdyMaskCell)
-      !$acc exit data delete(bdyMaskCell)
+      !commented !$acc exit data delete(bdyMaskCell)
 
       call mpas_pool_get_array(mesh, 'bdyMaskEdge', bdyMaskEdge)
-      !$acc exit data delete(bdyMaskEdge)
+      !commented !$acc exit data delete(bdyMaskEdge)
 #endif
 
    end subroutine mpas_atm_dynamics_finalize
@@ -3109,12 +3109,12 @@ module atm_time_integration
 
 
       MPAS_ACC_TIMER_START('atm_advance_scalars [ACC_data_xfer]')
-      !$acc enter data create(horiz_flux_arr)
-      !$acc enter data copyin(uhAvg, scalar_new)
+      !commented !$acc enter data create(horiz_flux_arr)
+      !commented !$acc enter data copyin(uhAvg, scalar_new)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars [ACC_data_xfer]')
 
-      !$acc parallel async
-      !$acc loop gang worker private(scalar_weight2, ica)
+      !commented !$acc parallel async
+      !commented !$acc loop gang worker private(scalar_weight2, ica)
       do iEdge=edgeStart,edgeEnd
 
          if ((.not.config_apply_lbcs) &
@@ -3124,19 +3124,19 @@ module atm_time_integration
 
             case(10)
 
-               !$acc loop vector collapse(2)
+               !commented !$acc loop vector collapse(2)
                do j=1,10
                   do k=1,nVertLevels
                      scalar_weight2(k,j) = adv_coefs(j,iEdge) + sign(1.0_RKIND,uhAvg(k,iEdge))*adv_coefs_3rd(j,iEdge)
                   end do
                end do
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do j=1,10
                   ica(j) = advCellsForEdge(j,iEdge)
                end do
 
-               !$acc loop vector collapse(2)
+               !commented !$acc loop vector collapse(2)
                do k = 1,nVertLevels
                   do iScalar = 1,num_scalars
                      horiz_flux_arr(iScalar,k,iEdge) = &
@@ -3155,18 +3155,18 @@ module atm_time_integration
 
             case default
 
-               !$acc loop vector collapse(2)
+               !commented !$acc loop vector collapse(2)
                do k=1,nVertLevels
                   do iScalar=1,num_scalars
                      horiz_flux_arr(iScalar,k,iEdge) = 0.0_RKIND
                   end do
                end do
 
-               !$acc loop seq
+               !commented !$acc loop seq
                do j=1,nAdvCellsForEdge(iEdge)
                   iAdvCell = advCellsForEdge(j,iEdge)
 
-                  !$acc loop vector collapse(2)
+                  !commented !$acc loop vector collapse(2)
                   do k=1,nVertLevels
                      do iScalar=1,num_scalars
                         scalar_weight = adv_coefs(j,iEdge) + sign(1.0_RKIND,uhAvg(k,iEdge))*adv_coefs_3rd(j,iEdge)
@@ -3185,7 +3185,7 @@ module atm_time_integration
             cell1 = cellsOnEdge(1,iEdge)
             cell2 = cellsOnEdge(2,iEdge)
 
-            !$acc loop vector collapse(2)
+            !commented !$acc loop vector collapse(2)
             do k=1,nVertLevels
                do iScalar=1,num_scalars
                   u_direction = sign(0.5_RKIND,uhAvg(k,iEdge))
@@ -3197,7 +3197,7 @@ module atm_time_integration
 
           end if ! end of regional MPAS test
       end do
-      !$acc end parallel
+      !commented !$acc end parallel
 
 !$OMP BARRIER
 
@@ -3208,21 +3208,21 @@ module atm_time_integration
 
       MPAS_ACC_TIMER_START('atm_advance_scalars [ACC_data_xfer]')
 #ifndef DO_PHYSICS
-      !$acc enter data create(scalar_tend_save)
+      !commented !$acc enter data create(scalar_tend_save)
 #else
-      !$acc enter data copyin(scalar_tend_save)
+      !commented !$acc enter data copyin(scalar_tend_save)
 #endif
-      !$acc enter data copyin(scalar_old, fnm, fnp, rdnw, wwAvg, rho_zz_old, rho_zz_new)
-      !$acc enter data create(scalar_tend_column, wdtn)
+      !commented !$acc enter data copyin(scalar_old, fnm, fnp, rdnw, wwAvg, rho_zz_old, rho_zz_new)
+      !commented !$acc enter data create(scalar_tend_column, wdtn)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars [ACC_data_xfer]')
 
-      !$acc parallel wait
-      !$acc loop gang worker private(scalar_tend_column, wdtn)
+      !commented !$acc parallel wait
+      !commented !$acc loop gang worker private(scalar_tend_column, wdtn)
       do iCell=cellSolveStart,cellSolveEnd
 
          if(bdyMaskCell(iCell) <= nRelaxZone) then  ! specified zone for regional_MPAS is not updated in this routine
 
-            !$acc loop vector collapse(2)
+            !commented !$acc loop vector collapse(2)
             do k=1,nVertLevels
             do iScalar=1,num_scalars
                scalar_tend_column(iScalar,k) = 0.0_RKIND
@@ -3232,13 +3232,13 @@ module atm_time_integration
             end do
             end do
 
-            !$acc loop seq
+            !commented !$acc loop seq
             do i=1,nEdgesOnCell(iCell)
                iEdge = edgesOnCell(i,iCell)
 
                ! here we add the horizontal flux divergence into the scalar tendency.
                ! note that the scalar tendency is modified.
-               !$acc loop vector collapse(2)
+               !commented !$acc loop vector collapse(2)
                do k=1,nVertLevels
                   do iScalar=1,num_scalars
                         scalar_tend_column(iScalar,k) = scalar_tend_column(iScalar,k) &
@@ -3248,7 +3248,7 @@ module atm_time_integration
 
             end do
 
-            !$acc loop vector collapse(2)
+            !commented !$acc loop vector collapse(2)
             do k=1,nVertLevels
                do iScalar=1,num_scalars
                      scalar_tend_column(iScalar,k) = scalar_tend_column(iScalar,k) * invAreaCell(iCell) &
@@ -3261,7 +3261,7 @@ module atm_time_integration
             !  vertical flux divergence and update of the scalars
             !
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do iScalar=1,num_scalars
                wdtn(iScalar,1) = 0.0
                wdtn(iScalar,2) = wwAvg(2,iCell)*(fnm(2)*scalar_new(iScalar,2,iCell)+fnp(2)*scalar_new(iScalar,2-1,iCell))
@@ -3271,7 +3271,7 @@ module atm_time_integration
                wdtn(iScalar,nVertLevels+1) = 0.0
             end do
 
-            !$acc loop vector collapse(2)
+            !commented !$acc loop vector collapse(2)
             do k=3,nVertLevels-1
                do iScalar=1,num_scalars
                   wdtn(iScalar,k) = flux3( scalar_new(iScalar,k-2,iCell),scalar_new(iScalar,k-1,iCell),  &
@@ -3280,7 +3280,7 @@ module atm_time_integration
                end do
             end do
 
-            !$acc loop vector collapse(2)
+            !commented !$acc loop vector collapse(2)
             do k=1,nVertLevels
                do iScalar=1,num_scalars
                   rho_zz_new_inv = 1.0_RKIND / (weight_time_old*rho_zz_old(k,iCell) + weight_time_new*rho_zz_new(k,iCell))
@@ -3292,12 +3292,12 @@ module atm_time_integration
          end if ! specified zone regional_MPAS test
 
       end do
-      !$acc end parallel
+      !commented !$acc end parallel
 
       MPAS_ACC_TIMER_START('atm_advance_scalars [ACC_data_xfer]')
-      !$acc exit data copyout(scalar_new)
-      !$acc exit data delete(scalar_tend_column, wdtn, uhAvg, wwAvg, scalar_old, fnm, fnp, &
-      !$acc                  rdnw, rho_zz_old, rho_zz_new, horiz_flux_arr, scalar_tend_save)
+      !commented !$acc exit data copyout(scalar_new)
+      !commented !$acc exit data delete(scalar_tend_column, wdtn, uhAvg, wwAvg, scalar_old, fnm, fnp, &
+      !commented !$acc                  rdnw, rho_zz_old, rho_zz_new, horiz_flux_arr, scalar_tend_save)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars [ACC_data_xfer]')
 
    end subroutine atm_advance_scalars_work
@@ -3556,27 +3556,27 @@ module atm_time_integration
 
 
       MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
-      !$acc data present(nEdgesOnCell, edgesOnCell, edgesOnCell_sign, &
-      !$acc              invAreaCell, cellsOnCell, cellsOnEdge, nAdvCellsForEdge, &
-      !$acc              advCellsForEdge, adv_coefs, adv_coefs_3rd, dvEdge, bdyMaskCell)
+      !commented !$acc data present(nEdgesOnCell, edgesOnCell, edgesOnCell_sign, &
+      !commented !$acc              invAreaCell, cellsOnCell, cellsOnEdge, nAdvCellsForEdge, &
+      !commented !$acc              advCellsForEdge, adv_coefs, adv_coefs_3rd, dvEdge, bdyMaskCell)
 
 #ifdef DO_PHYSICS
-      !$acc enter data copyin(scalar_tend)
+      !commented !$acc enter data copyin(scalar_tend)
 #else
-      !$acc enter data create(scalar_tend)
+      !commented !$acc enter data create(scalar_tend)
 #endif
       if (local_advance_density) then
-         !$acc enter data copyin(rho_zz_int)
+         !commented !$acc enter data copyin(rho_zz_int)
       end if
-      !$acc enter data copyin(scalars_old, rho_zz_old, rdnw, uhAvg, wwAvg)
+      !commented !$acc enter data copyin(scalars_old, rho_zz_old, rdnw, uhAvg, wwAvg)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
-      !$acc parallel
+      !commented !$acc parallel
 
-      !$acc loop gang worker
+      !commented !$acc loop gang worker
       do iCell=cellSolveStart,cellSolveEnd
 
-         !$acc loop vector collapse(2)
+         !commented !$acc loop vector collapse(2)
          do k = 1,nVertLevels
             do iScalar = 1,num_scalars
 
@@ -3590,12 +3590,12 @@ module atm_time_integration
 
       end do
 
-      !$acc end parallel
+      !commented !$acc end parallel
 
       MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
-      !$acc exit data copyout(scalar_tend)
+      !commented !$acc exit data copyout(scalar_tend)
 
-      !$acc update self(scalars_old)
+      !commented !$acc update self(scalars_old)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
 !$OMP BARRIER
@@ -3605,7 +3605,7 @@ module atm_time_integration
 !$OMP BARRIER
 
       MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
-      !$acc update device(scalars_old)
+      !commented !$acc update device(scalars_old)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
       !
@@ -3617,23 +3617,23 @@ module atm_time_integration
             call mpas_log_write('Error: rho_zz_int not supplied to atm_advance_scalars_mono_work( ) when advance_density=.true.', messageType=MPAS_LOG_CRIT)
          end if
 
-         !$acc parallel
+         !commented !$acc parallel
 
          !  begin with update of density
 
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellSolveStart,cellSolveEnd
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k=1,nVertLevels
                rho_zz_int(k,iCell) = 0.0_RKIND
             end do
 
-            !$acc loop seq
+            !commented !$acc loop seq
             do i=1,nEdgesOnCell(iCell)
                iEdge = edgesOnCell(i,iCell)
    
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   rho_zz_int(k,iCell) = rho_zz_int(k,iCell) - edgesOnCell_sign(i,iCell) &
                                                             * uhAvg(k,iEdge) * dvEdge(iEdge) * invAreaCell(iCell)
@@ -3642,16 +3642,16 @@ module atm_time_integration
             end do
          end do
 
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellSolveStart,cellSolveEnd
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k=1,nVertLevels
                rho_zz_int(k,iCell) = rho_zz_old(k,iCell) + dt*(rho_zz_int(k,iCell) - rdnw(k)*(wwAvg(k+1,iCell)-wwAvg(k,iCell)))
             end do
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
 !$OMP BARRIER
 
@@ -3659,21 +3659,21 @@ module atm_time_integration
 
       MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
       if (.not. local_advance_density) then
-         !$acc enter data copyin(rho_zz_new)
+         !commented !$acc enter data copyin(rho_zz_new)
       end if
-      !$acc enter data copyin(scalars_new, fnm, fnp)
-      !$acc enter data create(scalar_old, scalar_new, scale_arr, s_min, s_max, &
-      !$acc                   flux_arr, flux_tmp, flux_upwind_tmp, wdtn)
+      !commented !$acc enter data copyin(scalars_new, fnm, fnp)
+      !commented !$acc enter data create(scalar_old, scalar_new, scale_arr, s_min, s_max, &
+      !commented !$acc                   flux_arr, flux_tmp, flux_upwind_tmp, wdtn)
       MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
       do iScalar = 1, num_scalars
 
-         !$acc parallel
+         !commented !$acc parallel
 
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellStart,cellEnd
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k=1,nVertLevels
                scalar_old(k,iCell) = scalars_old(iScalar,k,iCell)
                scalar_new(k,iCell) = scalars_new(iScalar,k,iCell)
@@ -3687,12 +3687,12 @@ module atm_time_integration
          end do
 #endif
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
 !$OMP BARRIER
 
 #ifdef DEBUG_TRANSPORT
-         !$acc update self(scalar_old)
+         !commented !$acc update self(scalar_old)
 
          scmin = scalar_old(1,1)
          scmax = scalar_old(1,1)
@@ -3704,7 +3704,7 @@ module atm_time_integration
          end do
          call mpas_log_write(' scmin, scmin old in $r $r', realArgs=(/scmin,scmax/))
 
-         !$acc update self(scalar_new)
+         !commented !$acc update self(scalar_new)
 
          scmin = scalar_new(1,1)
          scmax = scalar_new(1,1)
@@ -3717,12 +3717,12 @@ module atm_time_integration
          call mpas_log_write(' scmin, scmin new in ', realArgs=(/scmin,scmax/))
 #endif
 
-         !$acc parallel
+         !commented !$acc parallel
 
          !
          !  vertical flux divergence, and min and max bounds for flux limiter
          !
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellSolveStart,cellSolveEnd
 
             ! zero flux at top and bottom
@@ -3738,7 +3738,7 @@ module atm_time_integration
             s_max(k,iCell) = max(scalar_old(k-1,iCell),scalar_old(k,iCell),scalar_old(k+1,iCell))
             s_min(k,iCell) = min(scalar_old(k-1,iCell),scalar_old(k,iCell),scalar_old(k+1,iCell))
              
-            !$acc loop vector
+            !commented !$acc loop vector
             do k=3,nVertLevels-1
                wdtn(k,iCell) = flux3( scalar_new(k-2,iCell),scalar_new(k-1,iCell),  &
                                       scalar_new(k  ,iCell),scalar_new(k+1,iCell),  &
@@ -3760,7 +3760,7 @@ module atm_time_integration
             ! original code retained in select "default" case
             select case(nEdgesOnCell(iCell))
             case(6)
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1, nVertLevels
                   s_max(k,iCell) = max(s_max(k,iCell), &
                        scalar_old(k, cellsOnCell(1,iCell)), &
@@ -3779,10 +3779,10 @@ module atm_time_integration
                end do
 
             case default
-               !$acc loop seq
+               !commented !$acc loop seq
                do i=1, nEdgesOnCell(iCell)
 
-                  !$acc loop vector
+                  !commented !$acc loop vector
                   do k=1, nVertLevels
                      s_max(k,iCell) = max(s_max(k,iCell),scalar_old(k, cellsOnCell(i,iCell)))
                      s_min(k,iCell) = min(s_min(k,iCell),scalar_old(k, cellsOnCell(i,iCell)))
@@ -3792,16 +3792,16 @@ module atm_time_integration
 
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
 !$OMP BARRIER
 
-         !$acc parallel
+         !commented !$acc parallel
 
          !
          !  horizontal flux divergence
          !
-         !$acc loop gang worker private(ica, swa)
+         !commented !$acc loop gang worker private(ica, swa)
          do iEdge=edgeStart,edgeEnd
 
             cell1 = cellsOnEdge(1,iEdge)
@@ -3814,14 +3814,14 @@ module atm_time_integration
                ! be sure to see additional declarations near top of subroutine
                select case(nAdvCellsForEdge(iEdge))
                case(10)
-                  !$acc loop vector
+                  !commented !$acc loop vector
                   do jj=1,10
                      ica(jj)    = advCellsForEdge(jj,iEdge)
                      swa(jj,1)  = adv_coefs(jj,iEdge) + adv_coefs_3rd(jj,iEdge)
                      swa(jj,2)  = adv_coefs(jj,iEdge) - adv_coefs_3rd(jj,iEdge)
                   end do
 
-                  !$acc loop vector
+                  !commented !$acc loop vector
                   do k=1,nVertLevels
                      ii = merge(1, 2, uhAvg(k,iEdge) > 0)
                      flux_arr(k,iEdge) = uhAvg(k,iEdge)*( &
@@ -3833,16 +3833,16 @@ module atm_time_integration
                   end do
 
                case default
-                  !$acc loop vector
+                  !commented !$acc loop vector
                   do k=1,nVertLevels
                      flux_arr(k,iEdge) = 0.0_RKIND
                   end do
 
-                  !$acc loop seq
+                  !commented !$acc loop seq
                   do i=1,nAdvCellsForEdge(iEdge)
                      iCell = advCellsForEdge(i,iEdge)
 
-                     !$acc loop vector
+                     !commented !$acc loop vector
                      do k=1,nVertLevels
                         scalar_weight = uhAvg(k,iEdge)*(adv_coefs(i,iEdge) + sign(1.0_RKIND,uhAvg(k,iEdge))*adv_coefs_3rd(i,iEdge))
                         flux_arr(k,iEdge) = flux_arr(k,iEdge) + scalar_weight* scalar_new(k,iCell)
@@ -3852,7 +3852,7 @@ module atm_time_integration
 
             else
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   flux_arr(k,iEdge) = 0.0_RKIND
                end do
@@ -3861,34 +3861,34 @@ module atm_time_integration
 
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
 !$OMP BARRIER
 
-         !$acc parallel
+         !commented !$acc parallel
 
          !
          !  vertical flux divergence for upwind update, we will put upwind update into scalar_new, and put factor of dt in fluxes
          !
 
-         !$acc loop gang worker private(flux_upwind_arr)
+         !commented !$acc loop gang worker private(flux_upwind_arr)
          do iCell=cellSolveStart,cellSolveEnd
 
             k = 1
             scalar_new(k,iCell) = scalar_old(k,iCell) * rho_zz_old(k,iCell)
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k = 2, nVertLevels
                scalar_new(k,iCell) = scalar_old(k,iCell)*rho_zz_old(k,iCell)
                flux_upwind_arr(k) = dt*(max(0.0_RKIND,wwAvg(k,iCell))*scalar_old(k-1,iCell) + min(0.0_RKIND,wwAvg(k,iCell))*scalar_old(k,iCell))
             end do
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k = 1, nVertLevels-1
                scalar_new(k,iCell) = scalar_new(k,iCell) - flux_upwind_arr(k+1)*rdnw(k)
             end do
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k = 2, nVertLevels
                scalar_new(k  ,iCell) = scalar_new(k  ,iCell) + flux_upwind_arr(k)*rdnw(k)
                wdtn(k,iCell) = dt*wdtn(k,iCell) - flux_upwind_arr(k)
@@ -3899,7 +3899,7 @@ module atm_time_integration
             ! contributions to the update:  first the vertical flux component, then the horizontal
             !
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k=1,nVertLevels
                scale_arr(k,SCALE_IN, iCell) = - rdnw(k)*(min(0.0_RKIND,wdtn(k+1,iCell))-max(0.0_RKIND,wdtn(k,iCell)))
                scale_arr(k,SCALE_OUT,iCell) = - rdnw(k)*(max(0.0_RKIND,wdtn(k+1,iCell))-min(0.0_RKIND,wdtn(k,iCell)))
@@ -3912,13 +3912,13 @@ module atm_time_integration
          !
 
          !  upwind flux computation
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iEdge=edgeStart,edgeEnd
 
             cell1 = cellsOnEdge(1,iEdge)
             cell2 = cellsOnEdge(2,iEdge)
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k=1,nVertLevels
                flux_upwind_tmp(k,iEdge) = dvEdge(iEdge) * dt *   &
                       (max(0.0_RKIND,uhAvg(k,iEdge))*scalar_old(k,cell1) + min(0.0_RKIND,uhAvg(k,iEdge))*scalar_old(k,cell2))
@@ -3926,7 +3926,7 @@ module atm_time_integration
             end do
 
             if( config_apply_lbcs .and. (bdyMaskEdge(iEdge) == nRelaxZone) .or. (bdyMaskEdge(iEdge) == nRelaxZone-1) ) then
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   flux_tmp(k,iEdge) = 0.0_RKIND
                   flux_arr(k,iEdge) = flux_upwind_tmp(k,iEdge)
@@ -3935,20 +3935,20 @@ module atm_time_integration
 
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
 !$OMP BARRIER
 
-         !$acc parallel
+         !commented !$acc parallel
 
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellSolveStart,cellSolveEnd
 
-            !$acc loop seq
+            !commented !$acc loop seq
             do i=1,nEdgesOnCell(iCell)
                iEdge = edgesOnCell(i,iCell)
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1, nVertLevels
                   scalar_new(k,iCell) = scalar_new(k,iCell) - edgesOnCell_sign(i,iCell) * flux_upwind_tmp(k,iEdge) * invAreaCell(iCell)
  
@@ -3970,10 +3970,10 @@ module atm_time_integration
          ! worked through algebra and found equivalent form
          ! added benefit that it should address ifort single prec overflow issue
          if (local_advance_density) then
-            !$acc loop gang worker
+            !commented !$acc loop gang worker
             do iCell=cellSolveStart,cellSolveEnd
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k = 1, nVertLevels
                   scale_factor = (s_max(k,iCell)*rho_zz_int(k,iCell) - scalar_new(k,iCell)) / &
                        (scale_arr(k,SCALE_IN,iCell)  + eps)
@@ -3985,10 +3985,10 @@ module atm_time_integration
                end do
             end do
          else
-            !$acc loop gang worker
+            !commented !$acc loop gang worker
             do iCell=cellSolveStart,cellSolveEnd
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k = 1, nVertLevels
                   scale_factor = (s_max(k,iCell)*rho_zz_new(k,iCell) - scalar_new(k,iCell)) / &
                        (scale_arr(k,SCALE_IN,iCell)  + eps)
@@ -4001,7 +4001,7 @@ module atm_time_integration
             end do
          end if
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
          !
          !  communicate scale factors here.
@@ -4009,7 +4009,7 @@ module atm_time_integration
          !
 
          MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
-         !$acc update self(scale_arr)
+         !commented !$acc update self(scale_arr)
          MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
 !$OMP BARRIER
@@ -4019,19 +4019,19 @@ module atm_time_integration
 !$OMP BARRIER
 
          MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
-         !$acc update device(scale_arr)
+         !commented !$acc update device(scale_arr)
          MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
-         !$acc parallel
+         !commented !$acc parallel
 
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iEdge=edgeStart,edgeEnd
             cell1 = cellsOnEdge(1,iEdge)
             cell2 = cellsOnEdge(2,iEdge)
 
             if (cell1 <= nCellsSolve .or. cell2 <= nCellsSolve) then  ! only for owned cells
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1, nVertLevels
                   flux_upwind = dvEdge(iEdge) * dt *   &
                          (max(0.0_RKIND,uhAvg(k,iEdge))*scalar_old(k,cell1) + min(0.0_RKIND,uhAvg(k,iEdge))*scalar_old(k,cell2))
@@ -4039,7 +4039,7 @@ module atm_time_integration
                end do
 
                if( config_apply_lbcs .and. (bdyMaskEdge(iEdge) == nRelaxZone) .or. (bdyMaskEdge(iEdge) == nRelaxZone-1) ) then
-                  !$acc loop vector
+                  !commented !$acc loop vector
                   do k=1,nVertLevels
                      flux_arr(k,iEdge) = 0.0_RKIND
                   end do
@@ -4054,14 +4054,14 @@ module atm_time_integration
 
          ! moved assignment to scalar_new from separate loop (see commented code below)
          ! into the following loops. Avoids having to save elements of flux array
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iEdge=edgeStart,edgeEnd
             cell1 = cellsOnEdge(1,iEdge)
             cell2 = cellsOnEdge(2,iEdge)
 
             if (cell1 <= nCellsSolve .or. cell2 <= nCellsSolve) then
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k = 1, nVertLevels
                   flux = flux_arr(k,iEdge)
                   flux = max(0.0_RKIND,flux) * min(scale_arr(k,SCALE_OUT,cell1), scale_arr(k,SCALE_IN, cell2)) &
@@ -4071,7 +4071,7 @@ module atm_time_integration
             end if
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
          !
          ! rescale the vertical flux
@@ -4079,12 +4079,12 @@ module atm_time_integration
 
 !$OMP BARRIER
 
-         !$acc parallel
+         !commented !$acc parallel
  
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellSolveStart,cellSolveEnd
 
-            !$acc loop vector
+            !commented !$acc loop vector
             do k = 2, nVertLevels
                flux = wdtn(k,iCell)
                flux = max(0.0_RKIND,flux) * min(scale_arr(k-1,SCALE_OUT,iCell), scale_arr(k  ,SCALE_IN,iCell)) &
@@ -4096,38 +4096,38 @@ module atm_time_integration
          !
          !  do the scalar update now that we have the fluxes
          !
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellSolveStart,cellSolveEnd
 
-            !$acc loop seq
+            !commented !$acc loop seq
             do i=1,nEdgesOnCell(iCell)
                iEdge = edgesOnCell(i,iCell)
 
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   scalar_new(k,iCell) = scalar_new(k,iCell) - edgesOnCell_sign(i,iCell)*flux_arr(k,iEdge) * invAreaCell(iCell)
                end do
             end do
 
             if (local_advance_density) then
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   scalar_new(k,iCell) = (scalar_new(k,iCell) + (-rdnw(k)*(wdtn(k+1,iCell)-wdtn(k,iCell)) ) )/rho_zz_int(k,iCell)
                end do
             else
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   scalar_new(k,iCell) = (scalar_new(k,iCell) + (-rdnw(k)*(wdtn(k+1,iCell)-wdtn(k,iCell)) ) )/rho_zz_new(k,iCell)
                end do
             end if
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
 #ifdef DEBUG_TRANSPORT
-         !$acc update self(scalar_new)
-         !$acc update self(s_max)
-         !$acc update self(s_min)
+         !commented !$acc update self(scalar_new)
+         !commented !$acc update self(s_max)
+         !commented !$acc update self(s_min)
 
          scmin = scalar_new(1,1)
          scmax = scalar_new(1,1)
@@ -4151,34 +4151,34 @@ module atm_time_integration
          ! hence the enforcement of PD in the copy back to the model state.
 !$OMP BARRIER
 
-         !$acc parallel
+         !commented !$acc parallel
 
-         !$acc loop gang worker
+         !commented !$acc loop gang worker
          do iCell=cellStart,cellEnd
             if(bdyMaskCell(iCell) <= nSpecZone) then ! regional_MPAS does spec zone update after transport.
-               !$acc loop vector
+               !commented !$acc loop vector
                do k=1,nVertLevels
                   scalars_new(iScalar,k,iCell) = max(0.0_RKIND,scalar_new(k,iCell))
                end do
             end if
          end do
 
-         !$acc end parallel
+         !commented !$acc end parallel
 
       end do !  loop over scalars
 
       MPAS_ACC_TIMER_START('atm_advance_scalars_mono [ACC_data_xfer]')
       if (local_advance_density) then
-         !$acc exit data copyout(rho_zz_int)
+         !commented !$acc exit data copyout(rho_zz_int)
       else
-         !$acc exit data delete(rho_zz_new)
+         !commented !$acc exit data delete(rho_zz_new)
       end if
-      !$acc exit data copyout(scalars_new)
-      !$acc exit data delete(scalars_old, scalar_old, scalar_new, scale_arr, s_min, s_max, &
-      !$acc                  rho_zz_old, flux_arr, flux_tmp, flux_upwind_tmp, wdtn, wwAvg, &
-      !$acc                  uhAvg, fnm, fnp, rdnw)
+      !commented !$acc exit data copyout(scalars_new)
+      !commented !$acc exit data delete(scalars_old, scalar_old, scalar_new, scale_arr, s_min, s_max, &
+      !commented !$acc                  rho_zz_old, flux_arr, flux_tmp, flux_upwind_tmp, wdtn, wwAvg, &
+      !commented !$acc                  uhAvg, fnm, fnp, rdnw)
 
-      !$acc end data
+      !commented !$acc end data
       MPAS_ACC_TIMER_STOP('atm_advance_scalars_mono [ACC_data_xfer]')
 
    end subroutine atm_advance_scalars_mono_work
