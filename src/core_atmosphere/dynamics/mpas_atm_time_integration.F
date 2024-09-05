@@ -1659,18 +1659,18 @@ module atm_time_integration
       MPAS_ACC_TIMER_STOP('atm_rk_integration_setup [ACC_data_xfer]')
 
       !$acc parallel
-      !$acc loop gang worker
+      !$acc loop collapse(2)
       do iEdge = edgeStart,edgeEnd
-         !$acc loop vector
+         ! !$acc loop vector
          do k = 1,nVertLevels
             ru_save(k,iEdge) = ru(k,iEdge)
             u_2(k,iEdge) = u_1(k,iEdge)
          end do
       end do
 
-      !$acc loop gang worker
+      !$acc loop collapse(2)
       do iCell = cellStart,cellEnd
-         !$acc loop vector
+         ! !$acc loop vector
          do k = 1,nVertLevels
             rtheta_p_save(k,iCell) = rtheta_p(k,iCell)
             rho_p_save(k,iCell) = rho_p(k,iCell)
@@ -1680,18 +1680,18 @@ module atm_time_integration
          end do
       end do
 
-      !$acc loop gang worker
+      !$acc loop collapse(2)
       do iCell = cellStart,cellEnd
-         !$acc loop vector
+         ! !$acc loop vector
          do k = 1,nVertLevels+1
             rw_save(k,iCell) = rw(k,iCell)
             w_2(k,iCell) = w_1(k,iCell)
          end do
       end do
 
-      !$acc loop gang worker
+      !$acc loop collapse(3)
       do iCell = cellStart,cellEnd
-         !$acc loop vector collapse(2)
+         ! !$acc loop vector collapse(2)
          do k = 1,nVertLevels
             do j = 1,num_scalars
                scalars_2(j,k,iCell) = scalars_1(j,k,iCell)
