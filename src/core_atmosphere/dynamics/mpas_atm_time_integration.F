@@ -1894,6 +1894,7 @@ module atm_time_integration
             !requires that the subroutine atm_advance_scalars_mono was called on the third Runge Kutta step, so that a halo
             !update for the scalars at time_levs(1) is applied. A halo update for the scalars at time_levs(2) is done above. 
             if (config_monotonic) then
+!!!               rqvdynten(:,:) = ( scalars_2(index_qv,:,:) - scalars_1(index_qv,:,:) ) / config_dt
 !$acc parallel vector_length(128)
 !$acc loop gang vector collapse(2)
                do cellsIdx=1,nCells+1
