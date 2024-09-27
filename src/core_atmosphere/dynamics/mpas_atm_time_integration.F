@@ -9330,6 +9330,20 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 !declare a pointer to the array that needs to be updated on the host
        real (kind=RKIND), dimension(:,:), pointer :: w, u
 
+#ifdef MPAS_CAM_DYCORE
+       type (mpas_pool_type), pointer :: tend_physics
+       real (kind=RKIND), dimension(:,:), pointer :: theta_m, rho_zz
+       real (kind=RKIND), dimension(:,:,:), pointer :: scalars
+       real (kind=RKIND), dimension(:,:), pointer :: rho_base, theta_base
+       real (kind=RKIND), dimension(:,:), pointer :: v
+       real (kind=RKIND), dimension(:,:), pointer :: theta, exner, rho
+       real (kind=RKIND), dimension(:,:), pointer :: uReconstructZonal, uReconstructMeridional
+       real (kind=RKIND), dimension(:,:), pointer :: vorticity
+       real (kind=RKIND), dimension(:,:), pointer :: divergence
+       real (kind=RKIND), dimension(:,:), pointer :: tend_ru_physics
+       real (kind=RKIND), dimension(:,:), pointer :: tend_rtheta_physics, tend_rho_physics
+#endif
+
          block => domain % blocklist
          do while (associated(block))
             call mpas_pool_get_subpool(block % structs, 'state', state)
@@ -9345,6 +9359,34 @@ if (config_horiz_mixing == "2d_smagorinsky") then
         !$acc update host(w, &
         !$acc u)
 
+#ifdef MPAS_CAM_DYCORE
+            ! Get variables that are needed in the dyn_in and dyn_out
+            ! variables in CAM. u and w are also needed by these objects
+            call mpas_pool_get_array_gpu(state, 'theta_m', theta_m, 2)
+            call mpas_pool_get_array_gpu(state, 'rho_zz', rho_zz, 2)
+            call mpas_pool_get_array(state, 'scalars', scalars, 2)
+
+            call mpas_pool_get_array_gpu(diag, 'v', v)
+            call mpas_pool_get_array_gpu(diag, 'rho_base', rho_base)
+            call mpas_pool_get_array_gpu(diag, 'theta_base', theta_base)
+            call mpas_pool_get_array_gpu(diag, 'theta', theta)
+            call mpas_pool_get_array_gpu(diag, 'exner', exner)
+            call mpas_pool_get_array_gpu(diag, 'rho', rho)
+            call mpas_pool_get_array_gpu(diag, 'uReconstructZonal', uReconstructZonal)
+            call mpas_pool_get_array_gpu(diag, 'uReconstructMeridional', uReconstructMeridional)
+            call mpas_pool_get_array_gpu(diag, 'divergence', divergence)
+            call mpas_pool_get_array_gpu(diag, 'vorticity', vorticity)
+
+            call mpas_pool_get_subpool(block % structs, 'tend_physics', tend_physics)
+            call mpas_pool_get_array_gpu(tend_physics, 'tend_rtheta_physics', tend_rtheta_physics)
+            call mpas_pool_get_array_gpu(tend_physics, 'tend_rho_physics', tend_rho_physics)
+            call mpas_pool_get_array_gpu(tend_physics, 'tend_ru_physics', tend_ru_physics)
+            !$acc update host(theta_m, rho_zz, scalars, &
+            !$acc   v, rho_base, theta_base, theta, exner, rho, &
+            !$acc   uReconstructZonal, uReconstructMeridional, &
+            !$acc   divergence, vorticity, tend_rtheta_physics, &
+            !$acc   tend_rho_physics, tend_ru_physics )
+#endif
             block => block % next
          end do
 
