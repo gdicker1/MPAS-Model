@@ -2079,13 +2079,13 @@ module atm_time_integration
 
       end if  ! regional_MPAS addition
 
-      call mpas_timer_start('atm_rk_summary')
-      call summarize_timestep(domain)
-      call mpas_timer_stop('atm_rk_summary')
-
       call mpas_timer_start('mpas update GPU data on host')
       call mpas_update_gpu_data_on_host(domain)
       call mpas_timer_stop('mpas update GPU data on host')
+
+      call mpas_timer_start('atm_rk_summary')
+      call summarize_timestep(domain)
+      call mpas_timer_stop('atm_rk_summary')
 
    end subroutine atm_srk3
 
