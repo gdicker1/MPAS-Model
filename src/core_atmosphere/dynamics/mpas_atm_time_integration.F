@@ -5371,7 +5371,7 @@ module atm_time_integration
  
       if(rk_step == 1) then
 
-       call atm_compute_dyn_tend_work(nCells, nEdges, nVertices, nVertLevels, &
+       call atm_compute_dyn_tend_work_rk1(nCells, nEdges, nVertices, nVertLevels, &
          nCellsSolve, nEdgesSolve, vertexDegree, maxEdges, maxEdges2, num_scalars, moist_start, moist_end, &
          fEdge, dvEdge, dcEdge, invDcEdge, invDvEdge, invAreaCell, invAreaTriangle, meshScalingDel2, meshScalingDel4, &
          weightsOnEdge, zgrid, rho_edge, rho_zz, ru, u, v, tend_u, &
@@ -5425,7 +5425,7 @@ module atm_time_integration
 
 
 
-   subroutine atm_compute_dyn_tend_work(nCells, nEdges, nVertices, nVertLevels_dummy, &
+   subroutine atm_compute_dyn_tend_work_rk1(nCells, nEdges, nVertices, nVertLevels_dummy, &
       nCellsSolve, nEdgesSolve, vertexDegree, maxEdges_dummy, maxEdges2_dummy, num_scalars_dummy, moist_start, moist_end, &
       fEdge, dvEdge, dcEdge, invDcEdge, invDvEdge, invAreaCell, invAreaTriangle, meshScalingDel2, meshScalingDel4, &
       weightsOnEdge, zgrid, rho_edge, rho_zz, ru, u, v, tend_u, &
@@ -6530,7 +6530,7 @@ if (config_horiz_mixing == "2d_smagorinsky") then
       end do
 !$acc update device(tend_theta)
 !$acc end data
-   end subroutine atm_compute_dyn_tend_work
+   end subroutine atm_compute_dyn_tend_work_rk1
 
       subroutine atm_compute_dyn_tend_work_rk23(nCells, nEdges, nVertices, nVertLevels_dummy, &
       nCellsSolve, nEdgesSolve, vertexDegree, maxEdges_dummy, maxEdges2_dummy, num_scalars_dummy, moist_start, moist_end, &
