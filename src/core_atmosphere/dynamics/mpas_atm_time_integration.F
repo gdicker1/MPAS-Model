@@ -577,7 +577,6 @@ module atm_time_integration
       allocate(qtot(nVertLevels,nCells+1))
 !      qtot(:,nCells+1) = 0.0_RKIND
       allocate(tend_th(nVertLevels,nCellsSolve))
-      qtot(:,nCells+1) = 0.0_RKIND
 
 #ifndef MPAS_CAM_DYCORE
       call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
@@ -596,6 +595,11 @@ module atm_time_integration
 !      tend_rho_physics(:,nCells+1) = 0.0_RKIND
       call mpas_pool_get_array_gpu(tend_physics, 'tend_ru_physics', tend_ru_physics)
 !      tend_ru_physics(:,nEdges+1) = 0.0_RKIND
+      do k = 1,nVertLevels+1
+         tend_rtheta_physics(k,nCells+1) = 0.0_RKIND
+         tend_rho_physics(k,nCells+1) = 0.0_RKIND
+         tend_ru_physics(k,nEdges+1) = 0.0_RKIND
+      end do
 
       !
       ! Initialize RK weights
@@ -2496,19 +2500,6 @@ module atm_time_integration
       real (kind=RKIND), dimension(nVertLevels,nEdges+1) :: cqu
       integer, dimension(2,nEdges+1) :: cellsOnEdge
 !$acc data present(scalars,cqw,cqu, qtot)
-
-      do iCell = edgeStart,edgeEnd
-         do k = 1,nVertLevels
-            tend_ru_physics(k,iCell) = 0.0_RKIND
-         end do
-      end do
-
-      do iCell = cellStart,cellEnd
-         do k = 1,nVertLevels
-            tend_rtheta_physics(k,iCell) = 0.0_RKIND
-            tend_rho_physics(k,iCell) = 0.0_RKIND
-         end do
-      end do
 
 !$acc parallel num_gangs(256)  vector_length(32)
 !$acc loop gang 
