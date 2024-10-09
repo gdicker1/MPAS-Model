@@ -5639,8 +5639,10 @@ module atm_time_integration
 
          if(config_horiz_mixing == "2d_smagorinsky") then
             do iCell = cellStart,cellEnd
-               d_diag(1:nVertLevels) = 0.0
-               d_off_diag(1:nVertLevels) = 0.0
+               do k = 1,nVertLevels
+                  d_diag(k) = 0.0
+                  d_off_diag(k) = 0.0
+               end do
                do iEdge=1,nEdgesOnCell(iCell)
                   do k=1,nVertLevels
                      d_diag(k)     = d_diag(k)     + defc_a(iEdge,iCell)*u(k,EdgesOnCell(iEdge,iCell))  &
@@ -5662,7 +5664,11 @@ module atm_time_integration
 
          else if(config_horiz_mixing == "2d_fixed") then
 
-            kdiff(1:nVertLevels,cellStart:cellEnd) = config_h_theta_eddy_visc2
+            do iCell = cellStart,cellEnd
+               do k = 1,nVertLevels
+                  kdiff(k,iCell) = config_h_theta_eddy_visc2
+               end do
+            end do
             h_mom_eddy_visc4 = config_h_mom_eddy_visc4
             h_theta_eddy_visc4 = config_h_theta_eddy_visc4
 
@@ -5690,7 +5696,10 @@ module atm_time_integration
       ! accumulate horizontal mass-flux
 
       do iCell=cellStart,cellEnd
-         h_divergence(1:nVertLevels,iCell) = 0.0
+         r = invAreaCell(iCell)
+         do k = 1,nVertLevels
+            h_divergence(k,iCell) = 0.0
+         end do
          do i=1,nEdgesOnCell(iCell)
             iEdge = edgesOnCell(i,iCell)
             edge_sign = edgesOnCell_sign(i,iCell) * dvEdge(iEdge)
@@ -5699,12 +5708,9 @@ module atm_time_integration
                h_divergence(k,iCell) = h_divergence(k,iCell) + edge_sign * ru(k,iEdge)
             end do
          end do
-      end do
 
       ! compute horiontal mass-flux divergence, add vertical mass flux divergence to complete tend_rho
 
-      do iCell = cellStart,cellEnd
-         r = invAreaCell(iCell)
          do k = 1,nVertLevels
             h_divergence(k,iCell) = h_divergence(k,iCell) * r
          end do
@@ -5734,21 +5740,26 @@ module atm_time_integration
       ! Compute u (normal) velocity tendency for each edge (cell face)
       !
 
-      do iEdge=edgeSolveStart,edgeSolveEnd
+      if(rk_step == 1) then
+         do iEdge=edgeSolveStart,edgeSolveEnd
 
-         cell1 = cellsOnEdge(1,iEdge)
-         cell2 = cellsOnEdge(2,iEdge)
+            cell1 = cellsOnEdge(1,iEdge)
+            cell2 = cellsOnEdge(2,iEdge)
 
-         ! horizontal pressure gradient
+            ! horizontal pressure gradient
 
-         if(rk_step == 1) then
 !DIR$ IVDEP
             do k=1,nVertLevels
                tend_u_euler(k,iEdge) =  - cqu(k,iEdge)*( (pp(k,cell2)-pp(k,cell1))*invDcEdge(iEdge)/(.5*(zz(k,cell2)+zz(k,cell1))) &
                                               -0.5*zxu(k,iEdge)*(dpdz(k,cell1)+dpdz(k,cell2)) )
             end do
+         end do
+      end if
 
-         end if
+      do iEdge=edgeSolveStart,edgeSolveEnd
+
+         cell1 = cellsOnEdge(1,iEdge)
+         cell2 = cellsOnEdge(2,iEdge)
 
          ! vertical transport of u
 
@@ -5770,8 +5781,9 @@ module atm_time_integration
          end do
 
          ! Next, nonlinear Coriolis term (q) following Ringler et al JCP 2009
-
-         q(:) = 0.0
+         do k=1,nVertLevels
+            q(k) = 0.0
+         end do
          do j = 1,nEdgesOnEdge(iEdge)
             eoe = edgesOnEdge(j,iEdge)
             do k=1,nVertLevels
@@ -5816,9 +5828,11 @@ module atm_time_integration
          ! del^4 horizontal filter.  We compute this as del^2 ( del^2 (u) ).
          ! First, storage to hold the result from the first del^2 computation.
 
-         delsq_u(1:nVertLevels,edgeStart:edgeEnd) = 0.0
-
          do iEdge=edgeStart,edgeEnd
+            do k = 1,nVertLevels
+               delsq_u(k,iEdge) = 0.0
+            end do
+
             cell1 = cellsOnEdge(1,iEdge)
             cell2 = cellsOnEdge(2,iEdge)
             vertex1 = verticesOnEdge(1,iEdge)
@@ -5850,7 +5864,9 @@ module atm_time_integration
 !$OMP BARRIER
 
             do iVertex=vertexStart,vertexEnd
-               delsq_vorticity(1:nVertLevels,iVertex) = 0.0
+               do k = 1,nVertLevels
+                  delsq_vorticity(k,iVertex) = 0.0
+               end do
                do i=1,vertexDegree
                   iEdge = edgesOnVertex(i,iVertex)
                   edge_sign = invAreaTriangle(iVertex) * dcEdge(iEdge) * edgesOnVertex_sign(i,iVertex)
@@ -5861,7 +5877,9 @@ module atm_time_integration
             end do
 
             do iCell=cellStart,cellEnd
-               delsq_divergence(1:nVertLevels,iCell) = 0.0
+               do k = 1,nVertLevels
+                  delsq_divergence(k,iCell) = 0.0
+               end do
                r = invAreaCell(iCell)
                do i=1,nEdgesOnCell(iCell)
                   iEdge = edgesOnCell(i,iCell)
@@ -6007,7 +6025,9 @@ module atm_time_integration
       !
 
       do iCell=cellSolveStart,cellSolveEnd    ! Technically updating fewer cells than before...
-         tend_w(1:nVertLevels+1,iCell) = 0.0
+         do k = 1,nVertlevels+1
+            tend_w(k,iCell) = 0.0
+         end do
          do i=1,nEdgesOnCell(iCell)
             iEdge = edgesOnCell(i,iCell)
             edge_sign = edgesOnCell_sign(i,iCell) * dvEdge(iEdge) * 0.5
@@ -6016,7 +6036,9 @@ module atm_time_integration
                ru_edge_w(k) = fzm(k)*ru(k,iEdge) + fzp(k)*ru(k-1,iEdge)
             end do
 
-            flux_arr(1:nVertLevels) = 0.0
+            do k = 1,nVertLevels
+               flux_arr(k) = 0.0
+            end do
 
             ! flux_arr stores the value of w at the cell edge used in the horizontal transport
 
@@ -6032,7 +6054,6 @@ module atm_time_integration
             do k=2,nVertLevels
                tend_w(k,iCell) = tend_w(k,iCell) - edgesOnCell_sign(i,iCell) * ru_edge_w(k)*flux_arr(k)
             end do
-
          end do
       end do
 
@@ -6066,12 +6087,12 @@ module atm_time_integration
          ! First, storage to hold the result from the first del^2 computation.
          !  we copied code from the theta mixing, hence the theta* names.
 
-
-         delsq_w(1:nVertLevels,cellStart:cellEnd) = 0.0
-
          do iCell=cellStart,cellEnd
-            tend_w_euler(1:nVertLevels+1,iCell) = 0.0
             r_areaCell = invAreaCell(iCell)
+            do k = 1,nVertLevels+1
+               delsq_w(k,iCell) = 0.0
+               tend_w_euler(k,iCell) = 0.0
+            end do
             do i=1,nEdgesOnCell(iCell)
                iEdge = edgesOnCell(i,iCell)
 
@@ -6147,19 +6168,18 @@ module atm_time_integration
          do k=2,nVertLevels
             tend_w(k,iCell) = tend_w(k,iCell) * invAreaCell(iCell) -rdzu(k)*(wdwz(k+1)-wdwz(k))
          end do
+      end do
 
-         if(rk_step == 1) then
+      if(rk_step == 1) then
+         do iCell=cellSolveStart,cellSolveEnd
 !DIR$ IVDEP
             do k=2,nVertLevels
               tend_w_euler(k,iCell) = tend_w_euler(k,iCell) - cqw(k,iCell)*(   &
                                            rdzu(k)*(pp(k,iCell)-pp(k-1,iCell)) &
                                          - (fzm(k)*dpdz(k,iCell) + fzp(k)*dpdz(k-1,iCell)) )  ! dpdz is the buoyancy term here.
             end do
-          end if
+         end do
 
-      end do
-
-      if (rk_step == 1) then
 
          if ( v_mom_eddy_visc2 > 0.0 ) then
 
@@ -6192,11 +6212,15 @@ module atm_time_integration
       !
 
       do iCell=cellSolveStart,cellSolveEnd    ! Technically updating fewer cells than before...
-         tend_theta(1:nVertLevels,iCell) = 0.0
+         do k = 1,nVertLevels
+            tend_theta(k,iCell) = 0.0
+         end do
          do i=1,nEdgesOnCell(iCell)
             iEdge = edgesOnCell(i,iCell)
 
-            flux_arr(1:nVertLevels) = 0.0
+            do k = 1,nVertLevels
+               flux_arr(k) = 0.0
+            end do
 
             do j=1,nAdvCellsForEdge(iEdge)
                iAdvCell = advCellsForEdge(j,iEdge)
@@ -6238,10 +6262,12 @@ module atm_time_integration
 
       if (rk_step == 1) then
 
-         delsq_theta(1:nVertLevels,cellStart:cellEnd) = 0.0
 
          do iCell=cellStart,cellEnd
-            tend_theta_euler(1:nVertLevels,iCell) = 0.0
+            do k = 1,nVertLevels
+               delsq_theta(k,iCell) = 0.0
+               tend_theta_euler(k,iCell) = 0.0
+            end do
             r_areaCell = invAreaCell(iCell)
             do i=1,nEdgesOnCell(iCell)
                iEdge = edgesOnCell(i,iCell)
