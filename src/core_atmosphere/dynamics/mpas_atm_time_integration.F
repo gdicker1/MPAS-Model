@@ -5644,8 +5644,9 @@ module atm_time_integration
 !$acc              pv_edge, rho_edge, ke, divergence, vorticity, u_init, v_init, &
 !$acc              rho_zz, rdzu, cqw, theta_m, ru_save, theta_m_save, rw_save, &
 !$acc              rt_diabatic_tend, t_init) &
-!$acc      present(defc_a, defc_b, fzm, fzp, angleEdge, latEdge, zgrid) &
-!$acc      present(tend_rho_physics, tend_ru_physics, tend_rtheta_physics)
+!$acc      present(defc_a, defc_b, fzm, fzp, angleEdge, latEdge, zgrid)
+! !$acc      present(defc_a, defc_b, fzm, fzp, angleEdge, latEdge, zgrid) &
+! !$acc      present(tend_rho_physics, tend_ru_physics, tend_rtheta_physics)
 
       if (rk_step == 1) then
 
@@ -5761,6 +5762,15 @@ module atm_time_integration
       if(rk_step == 1) then
 
         rgas_cprcv = rgas*cp/cv
+
+!$acc update host(h_divergence, rdzw, rw)
+        do iCell = cellStart,cellEnd
+          do k = 1,nVertLevels
+            tend_rho(k,iCell) = -h_divergence(k,iCell)-rdzw(k)*(rw(k+1,iCell)-rw(k,iCell)) + tend_rho_physics(k,iCell)
+          end do
+        end do
+!$acc update device(tend_rho)
+
 !$acc parallel
 !$acc loop gang
         do iCell = cellStart,cellEnd
@@ -5768,7 +5778,7 @@ module atm_time_integration
 !DIR$ IVDEP
 !$acc loop vector
           do k = 1,nVertLevels
-            tend_rho(k,iCell) = -h_divergence(k,iCell)-rdzw(k)*(rw(k+1,iCell)-rw(k,iCell)) + tend_rho_physics(k,iCell)
+            ! tend_rho(k,iCell) = -h_divergence(k,iCell)-rdzw(k)*(rw(k+1,iCell)-rw(k,iCell)) + tend_rho_physics(k,iCell)
             dpdz(k,iCell) = -gravity*(rb(k,iCell)*(qtot(k,iCell)) + rr_save(k,iCell)*(1.+qtot(k,iCell)))
           end do
         end do
@@ -6094,17 +6104,19 @@ module atm_time_integration
 !$acc end kernels
       end if
 
-!$acc parallel
-!$acc loop gang
+! !$acc parallel
+! !$acc loop gang
+!$acc update host(tend_u, tend_u_euler)
       do iEdge=edgeSolveStart,edgeSolveEnd
 !DIR$ IVDEP
-!$acc loop vector
+! !$acc loop vector
          do k=1,nVertLevels
 !            tend_u(k,iEdge) = tend_u(k,iEdge) + tend_u_euler(k,iEdge)
             tend_u(k,iEdge) = tend_u(k,iEdge) + tend_u_euler(k,iEdge) + tend_ru_physics(k,iEdge)
          end do
       end do
-!$acc end parallel
+!$acc update device(tend_u)
+! !$acc end parallel
 
 
 !----------- rhs for w
@@ -6561,8 +6573,9 @@ module atm_time_integration
 
       end if ! compute vertical theta mixing on first rk_step
 
-!$acc parallel
-!$acc loop gang
+! !$acc parallel
+! !$acc loop gang
+!$acc update host(tend_theta, tend_theta_euler)
       do iCell = cellSolveStart,cellSolveEnd
 !DIR$ IVDEP
          do k=1,nVertLevels
@@ -6570,7 +6583,8 @@ module atm_time_integration
             tend_theta(k,iCell) = tend_theta(k,iCell) + tend_theta_euler(k,iCell) + tend_rtheta_physics(k,iCell)
          end do
       end do
-!$acc end parallel
+!$acc update device(tend_theta)
+! !$acc end parallel
 
 !$acc end data
 
