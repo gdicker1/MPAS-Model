@@ -595,11 +595,14 @@ module atm_time_integration
 !      tend_rho_physics(:,nCells+1) = 0.0_RKIND
       call mpas_pool_get_array_gpu(tend_physics, 'tend_ru_physics', tend_ru_physics)
 !      tend_ru_physics(:,nEdges+1) = 0.0_RKIND
+!$acc kernels present(tend_rtheta_physics, tend_rho_physics, tend_ru_physics)
       do k = 1,nVertLevels+1
          tend_rtheta_physics(k,nCells+1) = 0.0_RKIND
          tend_rho_physics(k,nCells+1) = 0.0_RKIND
          tend_ru_physics(k,nEdges+1) = 0.0_RKIND
       end do
+!$acc end kernels
+!$acc update host(tend_rtheta_physics, tend_rho_physics, tend_ru_physics)
 
       !
       ! Initialize RK weights
