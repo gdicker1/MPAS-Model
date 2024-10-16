@@ -2086,9 +2086,11 @@ module atm_time_integration
 
       end if  ! regional_MPAS addition
 
+#ifdef MPAS_OPENACC
       call mpas_timer_start('mpas update GPU data on host')
       call mpas_update_gpu_data_on_host(domain)
       call mpas_timer_stop('mpas update GPU data on host')
+#endif MPAS_OPENACC
 
       call mpas_timer_start('atm_rk_summary')
       call summarize_timestep(domain)
@@ -10480,6 +10482,11 @@ if (config_horiz_mixing == "2d_smagorinsky") then
        type (domain_type), intent(in) :: domain
        type (block_type), pointer :: block
 
+       logical, pointer :: config_print_global_minmax_vel
+       logical, pointer :: config_print_detailed_minmax_vel
+       logical, pointer :: config_print_global_minmax_sca
+
+
        integer :: iCell, k, iEdge, iScalar
        integer, pointer :: num_scalars, nCellsSolve, nEdgesSolve, nVertLevels
 
@@ -10489,24 +10496,51 @@ if (config_horiz_mixing == "2d_smagorinsky") then
 
 !declare a pointer to the array that needs to be updated on the host
        real (kind=RKIND), dimension(:,:), pointer :: w, u
+       real (kind=RKIND), dimension(:,:), pointer :: v
+       real (kind=RKIND), dimension(:,:,:), pointer :: scalars
 
-         block => domain % blocklist
-         do while (associated(block))
-            call mpas_pool_get_subpool(block % structs, 'state', state)
-            call mpas_pool_get_subpool(block % structs, 'diag', diag)
-            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
+       call mpas_pool_get_config(domain % blocklist % configs, 'config_print_detailed_minmax_vel', config_print_detailed_minmax_vel)
+       call mpas_pool_get_config(domain % blocklist % configs, 'config_print_global_minmax_sca', config_print_global_minmax_sca)
+
+       block => domain % blocklist
+       do while (associated(block))
+          call mpas_pool_get_subpool(block % structs, 'state', state)
+          call mpas_pool_get_subpool(block % structs, 'diag', diag)
+          call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
 
 !call to mpas pool get array to get the pointer to the array that needs to be
 !updated on the host
-            call mpas_pool_get_array_gpu(state, 'w', w, 2)
-            call mpas_pool_get_array_gpu(state, 'u', u, 2)
+          call mpas_pool_get_array_gpu(state, 'w', w, 2)
+          call mpas_pool_get_array_gpu(state, 'u', u, 2)
 
 !add the variables in the "update host" clause below to update the data on host
-        !$acc update host(w, &
-        !$acc u)
+          !$acc update host(w, &
+          !$acc u)
 
-            block => block % next
-         end do
+          block => block % next
+       end do
+
+       if (config_print_detailed_minmax_vel) then
+          block => domain % blocklist
+          do while (associated(block))
+             call mpas_pool_get_subpool(block % structs, 'diag', diag)
+
+             call mpas_pool_get_array_gpu(diag, 'v', v)
+             !$acc update host(v)
+             block => block % next
+          end do
+       end if
+
+       if (config_print_global_minmax_sca) then
+          block => domain % blocklist
+          do while (associated(block))
+             call mpas_pool_get_subpool(block % structs, 'state', state)
+
+             call mpas_pool_get_array_gpu(state, 'scalars', scalars, 2)
+             !$acc update host(scalars)
+             block => block % next
+          end do
+       end if
 
 
    end subroutine mpas_update_gpu_data_on_host
