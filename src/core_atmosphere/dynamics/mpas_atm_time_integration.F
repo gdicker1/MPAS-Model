@@ -577,7 +577,6 @@ module atm_time_integration
       allocate(qtot(nVertLevels,nCells+1))
 !      qtot(:,nCells+1) = 0.0_RKIND
       allocate(tend_th(nVertLevels,nCellsSolve))
-      qtot(:,nCells+1) = 0.0_RKIND
 
 #ifndef MPAS_CAM_DYCORE
       call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
