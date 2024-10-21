@@ -29,6 +29,12 @@ module atm_time_integration
    
    use mpas_atm_iau  
 
+   interface summarize_array
+      module procedure summarize_array_1d
+      module procedure summarize_array_2d
+      module procedure summarize_array_3d
+   end interface summarize_array
+
    integer :: timerid, secs, u_secs
 
    ! Used to store physics tendencies for dynamics variables
@@ -6722,6 +6728,172 @@ module atm_time_integration
    end subroutine atm_bdy_set_scalars_work
 
 !-------------------------------------------------------------------------
+
+
+   subroutine summarize_array_1d(domain, array, array_dims, desc_str)
+
+      use mpas_dmpar, only : mpas_dmpar_min_real, mpas_dmpar_max_real, &
+                             mpas_dmpar_sum_real
+
+      implicit none
+
+      ! inputs
+      type (domain_type), intent(inout)              :: domain     !< input: MPAS domain, mainly for dminfo for mpas_dmpar calls
+      real(kind=rkind), dimension(:), intent(in)     :: array      !< input: array to get stats from
+      integer, dimension(1)                          :: array_dims !< input: elements per dimension of this array
+      character (len=*), intent(in)                  :: desc_str   !< input: summary prefix or array_name
+
+      ! locals
+      real (kind=rkind) :: local_min, local_max, local_sum
+      ! eventual outputs
+      real (kind=rkind) :: global_min, global_max, global_sum
+      character (len=StrKIND)                        :: stats
+      character (len=StrKIND)                        :: result     !< output: string with stat information
+
+      integer :: i, j, k
+
+      !$acc update host(array)
+
+      ! compute the stats for this local rank
+      local_min = 1.0e20_rkind
+      local_max = -1.0e20_rkind
+      local_sum = 0.0_rkind
+      do k = 1, array_dims(1)
+        if (array(k) < local_min) then
+           local_min = array(k)
+        end if
+        if (array(k) > local_max) then
+           local_max = array(k)
+        end if
+        local_sum = local_sum + array(k)
+      end do
+
+      ! get the global info
+      call mpas_dmpar_min_real(domain % dminfo, local_min, global_min)
+      call mpas_dmpar_max_real(domain % dminfo, local_max, global_max)
+      call mpas_dmpar_sum_real(domain % dminfo, local_sum, global_sum)
+
+      ! format the output string
+      write (stats, '(a,G13.6,a,G13.6,a,G13.6)') 'global min ''', global_min, ''' max ''', global_max, ''' sum ''', global_sum
+      write (result, '(a,a,a)') trim(desc_str), ' : ', trim(stats)
+
+      ! write the output
+      call mpas_log_write(result, MPAS_LOG_WARN, masterOnly=.true., flushNow=.true.)
+
+   end subroutine summarize_array_1d
+
+
+   subroutine summarize_array_2d(domain, array, array_dims, desc_str)
+
+      use mpas_dmpar, only : mpas_dmpar_min_real, mpas_dmpar_max_real, &
+                             mpas_dmpar_sum_real
+
+      implicit none
+
+      ! inputs
+      type (domain_type), intent(inout)              :: domain      !< input: MPAS domain, mainly for dminfo for mpas_dmpar calls
+      real(kind=rkind), dimension(:,:), intent(in)   :: array       !< input: array to get stats from
+      integer, dimension(2)                          :: array_dims  !< input: elements per dimension of this array
+      character (len=*), intent(in)                  :: desc_str    !< input: summary prefix or array_name
+
+      ! locals
+      real (kind=rkind) :: local_min, local_max, local_sum
+      ! eventual outputs
+      real (kind=rkind) :: global_min, global_max, global_sum
+      character (len=StrKIND)                        :: stats
+      character (len=StrKIND)                        :: result      !< output: string with stat information
+
+      integer :: i, j, k
+
+      !$acc update host(array)
+
+      ! compute the stats for this local rank
+      local_min = 1.0e20_rkind
+      local_max = -1.0e20_rkind
+      local_sum = 0.0_rkind
+      do i = 1, array_dims(2)
+         do k = 1, array_dims(1)
+            if (array(k,i) < local_min) then
+               local_min = array(k,i)
+            end if
+            if (array(k,i) > local_max) then
+               local_max = array(k,i)
+            end if
+            local_sum = local_sum + array(k,i)
+         end do
+      end do
+
+      ! get the global info
+      call mpas_dmpar_min_real(domain % dminfo, local_min, global_min)
+      call mpas_dmpar_max_real(domain % dminfo, local_max, global_max)
+      call mpas_dmpar_sum_real(domain % dminfo, local_sum, global_sum)
+
+      ! format the output string
+      write (stats, '(a,G13.6,a,G13.6,a,G13.6)') 'global min ''', global_min, ''' max ''', global_max, ''' sum ''', global_sum
+      write (result, '(a,a,a)') trim(desc_str), ' : ', trim(stats)
+
+      ! write the output
+      call mpas_log_write(result, MPAS_LOG_WARN, masterOnly=.true., flushNow=.true.)
+
+   end subroutine summarize_array_2d
+
+
+   subroutine summarize_array_3d(domain, array, array_dims, desc_str)
+
+      use mpas_dmpar, only : mpas_dmpar_min_real, mpas_dmpar_max_real, &
+                             mpas_dmpar_sum_real
+
+      implicit none
+
+      ! inputs
+      type (domain_type), intent(inout)              :: domain     !< input: MPAS domain, mainly for dminfo for mpas_dmpar calls
+      real(kind=rkind), dimension(:,:,:), intent(in) :: array      !< input: array to get stats from
+      integer, dimension(3)                          :: array_dims !< input: elements per dimension of this array
+      character (len=*), intent(in)                  :: desc_str   !< input: summary prefix or array_name
+
+      ! locals
+      real (kind=rkind) :: local_min, local_max, local_sum
+      ! eventual outputs
+      real (kind=rkind) :: global_min, global_max, global_sum
+      character (len=StrKIND)                        :: stats
+      character (len=StrKIND)                        :: result     !< output: string with stat information
+
+      integer :: i, j, k
+
+      !$acc update host(array)
+
+      ! compute the stats for this local rank
+      local_min = 1.0e20_rkind
+      local_max = -1.0e20_rkind
+      local_sum = 0.0_rkind
+      do j = 1, array_dims(3)
+         do i = 1, array_dims(2)
+            do k = 1, array_dims(1)
+               if (array(k,i,j) < local_min) then
+                  local_min = array(k,i,j)
+               end if
+               if (array(k,i,j) > local_max) then
+                  local_max = array(k,i,j)
+               end if
+               local_sum = local_sum + array(k,i,j)
+            end do
+         end do
+      end do
+
+      ! get the global info
+      call mpas_dmpar_min_real(domain % dminfo, local_min, global_min)
+      call mpas_dmpar_max_real(domain % dminfo, local_max, global_max)
+      call mpas_dmpar_sum_real(domain % dminfo, local_sum, global_sum)
+
+      ! format the output string
+      write (stats, '(a,G13.6,a,G13.6,a,G13.6)') 'global min ''', global_min, ''' max ''', global_max, ''' sum ''', global_sum
+      write (result, '(a,a,a)') trim(desc_str), ' : ', trim(stats)
+
+      ! write the output
+      call mpas_log_write(result, MPAS_LOG_WARN, masterOnly=.true., flushNow=.true.)
+
+   end subroutine summarize_array_3d
+
 
    subroutine summarize_timestep(domain)
 
