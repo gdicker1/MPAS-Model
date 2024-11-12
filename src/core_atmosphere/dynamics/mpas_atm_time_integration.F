@@ -331,6 +331,11 @@ module atm_time_integration
       real (kind=RKIND)  :: time_dyn_step
       logical, parameter :: debug = .false.
 
+      ! GDD added for debugging
+      character (len=StrKIND) :: gdd_tmp='atm_srk3'
+      character (len=StrKIND) :: gdd_line, gdd_desc
+      real (kind=RKIND), dimension(:,:), pointer :: gdd_w
+      real (kind=RKIND), dimension(:,:), pointer :: gdd_u
 
       !
       ! Retrieve configuration options
@@ -372,6 +377,14 @@ module atm_time_integration
       allocate(qtot(nVertLevels,nCells+1))
       qtot(:,nCells+1) = 0.0_RKIND
 
+      gdd_line=''
+      write(gdd_line, '(I0)') 381
+      gdd_desc = 'top of ' // trim(gdd_tmp) // ' ' // trim(gdd_line)
+      call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+      call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+      call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+      call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 #ifndef MPAS_CAM_DYCORE
       call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
       call mpas_allocate_scratch_field(tend_rtheta_physicsField)
@@ -389,6 +402,13 @@ module atm_time_integration
       tend_rho_physics(:,nCells+1) = 0.0_RKIND
       call mpas_pool_get_array(tend_physics, 'tend_ru_physics', tend_ru_physics)
       tend_ru_physics(:,nEdges+1) = 0.0_RKIND
+
+      gdd_line=''
+      write(gdd_line, '(I0)') 407
+      gdd_desc = trim(gdd_tmp) // ' ' // trim(gdd_line)
+      call summarize_array(tend_rtheta_physics(1:nVertLevels, 1:nCells+1), trim(gdd_desc) // ' ''tend_rtheta_physics''')
+      call summarize_array(   tend_rho_physics(1:nVertLevels, 1:nCells+1), trim(gdd_desc) // ' ''tend_rho_physics''')
+      call summarize_array(    tend_ru_physics(1:nVertLevels, 1:nEdges+1), trim(gdd_desc) // ' ''tend_ru_physics''')
 
       !
       ! Initialize RK weights
@@ -492,6 +512,14 @@ module atm_time_integration
       end do
       call mpas_timer_stop('atm_rk_integration_setup')
 
+      gdd_line=''
+      write(gdd_line, '(I0)') 516
+      gdd_desc = trim(gdd_tmp) // ' ' // trim(gdd_line)
+      call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+      call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+      call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+      call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
       call mpas_timer_start('atm_compute_moist_coefficients')
       block => domain % blocklist
       do while (associated(block))
@@ -532,6 +560,15 @@ module atm_time_integration
          block => block % next
       end do
       call mpas_timer_stop('atm_compute_moist_coefficients')
+
+      gdd_line=''
+      write(gdd_line, '(I0)') 565
+      gdd_desc = trim(gdd_tmp) // ' ' // trim(gdd_line)
+      call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+      call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+      call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+      call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
 #ifdef DO_PHYSICS
       call mpas_timer_start('physics_get_tend')
@@ -623,6 +660,16 @@ module atm_time_integration
          end do
          call mpas_timer_stop('atm_compute_vert_imp_coefs')
 
+         gdd_line=''
+         write(gdd_line, '(I0)') 664
+         gdd_desc=''
+         write(gdd_desc, '(A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' ' // trim(gdd_line)
+         call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+         call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+         call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+         call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
+
          call mpas_pool_get_field(diag, 'exner', exner_field)
          call mpas_dmpar_exch_halo_field(exner_field)
 
@@ -671,6 +718,15 @@ module atm_time_integration
                  block => block % next
               end do
             end if  
+
+            gdd_line=''
+            write(gdd_line, '(I0)') 723
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
 
             call mpas_timer_start('atm_compute_dyn_tend')
             block => domain % blocklist
@@ -745,6 +801,16 @@ module atm_time_integration
             end do
             call mpas_timer_stop('atm_compute_dyn_tend')
 
+            gdd_line=''
+            write(gdd_line, '(I0)') 805
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
+
 
             !***********************************
             !  need tendencies at all edges of owned cells -
@@ -792,6 +858,16 @@ module atm_time_integration
                block => block % next
             end do
             call mpas_timer_stop('small_step_prep')
+
+            gdd_line=''
+            write(gdd_line, '(I0)') 863
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
           
 !------------------------------------------------------------------------------------------------------------------------
@@ -952,6 +1028,16 @@ module atm_time_integration
                end do
                call mpas_timer_stop('atm_advance_acoustic_step')
 
+               gdd_line=''
+               write(gdd_line, '(I0)') 1032
+               gdd_desc=''
+               write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+               call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+               call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+               call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+               call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
+
   
 ! rtheta_pp
 ! This is the only communications needed during the acoustic steps because we solve for u on all edges of owned cells
@@ -983,6 +1069,16 @@ module atm_time_integration
                   block => block % next
                end do
                call mpas_timer_stop('atm_divergence_damping_3d')
+
+               gdd_line=''
+               write(gdd_line, '(I0)') 1074
+               gdd_desc=''
+               write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+               call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+               call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+               call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+               call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
             end do  ! end of acoustic steps loop
 
@@ -1044,6 +1140,16 @@ module atm_time_integration
                block => block % next
             end do
             call mpas_timer_stop('atm_recover_large_step_variables')
+
+            gdd_line=''
+            write(gdd_line, '(I0)') 1145
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
 !-------------------------------------------------------------------
 
@@ -1110,6 +1216,16 @@ module atm_time_integration
 
                call advance_scalars('scalars', domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                                     config_time_integration_order, config_split_dynamics_transport)
+
+            gdd_line=''
+            write(gdd_line, '(I0)') 1221
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
                if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
 
@@ -1232,6 +1348,16 @@ module atm_time_integration
             end do
             call mpas_timer_stop('atm_compute_solve_diagnostics')
 
+            gdd_line=''
+            write(gdd_line, '(I0)') 1352
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
+
 
             ! w
             call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
@@ -1345,6 +1471,17 @@ module atm_time_integration
          end do
          call mpas_timer_stop('atm_rk_dynamics_substep_finish')
 
+         gdd_line=''
+         write(gdd_line, '(I0)') 1475
+         gdd_desc=''
+         write(gdd_desc, '(A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' ' // trim(gdd_line)
+         gdd_desc = trim(gdd_tmp) // ' ' // trim(gdd_line) // ' '
+         call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+         call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+         call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+         call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
+
       end do DYNAMICS_SUBSTEPS
 
 
@@ -1374,6 +1511,16 @@ module atm_time_integration
 
             call advance_scalars('scalars', domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                                  config_time_integration_order, config_split_dynamics_transport)
+
+            gdd_line=''
+            write(gdd_line, '(I0)') 1516
+            gdd_desc=''
+            write(gdd_desc, '(A,I0,A,I0,A)') trim(gdd_tmp) // ' substep=', dynamics_substep, ' rkstep=', rk_step, ' ' // trim(gdd_line)
+            call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+            call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+            call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+            call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
             if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
 
@@ -1488,6 +1635,16 @@ module atm_time_integration
 
          block => block % next
       end do
+
+      gdd_line=''
+      write(gdd_line, '(I0)') 1640
+      gdd_desc=''
+      gdd_desc=trim(gdd_tmp) // ' ' // trim(gdd_line)
+      call mpas_pool_get_array(state, 'u', gdd_u, timelevel=2)
+      call mpas_pool_get_array(state, 'w', gdd_w, timelevel=2)
+      call summarize_array(gdd_u, trim(gdd_desc) // ' ''u''')
+      call summarize_array(gdd_w, trim(gdd_desc) // ' ''w''')
+
 
       !
       ! call to parameterizations of cloud microphysics. calculation of the tendency of water vapor to horizontal and
