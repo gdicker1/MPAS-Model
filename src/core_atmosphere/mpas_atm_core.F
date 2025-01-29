@@ -960,6 +960,7 @@ module atm_core
       use mpas_atmphys_update
 #endif
       use mpas_atm_halos, only: exchange_halo_group
+      use shr_mem_mod, only: shr_mem_prtusage
    
       implicit none
    
@@ -972,6 +973,8 @@ module atm_core
       integer :: s, s_n, s_d
       real (kind=RKIND) :: xtime_s
       integer :: ierr
+
+      call shr_mem_prtusage('GDD atm_do_timestep 00 enter')
 
       clock => domain % clock
       mpas_log_info => domain % logInfo
@@ -994,6 +997,7 @@ module atm_core
 
       call atm_timestep(domain, dt, currTime, itimestep, exchange_halo_group)
 
+      call shr_mem_prtusage('GDD atm_do_timestep -1 exit')
    end subroutine atm_do_timestep
    
    

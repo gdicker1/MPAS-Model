@@ -260,6 +260,7 @@ module atm_time_integration
    ! Output: domain - upon exit, time level 2 (e.g., time_levs(2)%state%h(:,:)) contains 
    !                  model state advanced forward in time by dt seconds
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+      use shr_mem_mod, only : shr_mem_prtusage
 
       implicit none
 
@@ -279,6 +280,7 @@ module atm_time_integration
       type (mpas_pool_type), pointer :: state
       character (len=StrKIND), pointer :: config_time_integration
 
+      call shr_mem_prtusage('GDD atm_timestep 00 enter')
 
       clock => domain % clock
       block => domain % blocklist
@@ -286,12 +288,14 @@ module atm_time_integration
       call mpas_pool_get_config(block % configs, 'config_time_integration', config_time_integration)
       call mpas_pool_get_config(block % configs, 'config_apply_lbcs', config_apply_lbcs)
 
+      call shr_mem_prtusage('GDD atm_timestep 01 pre call atm_srk3')
       if (trim(config_time_integration) == 'SRK3') then
          call atm_srk3(domain, dt, itimestep, exchange_halo_group)
       else
          call mpas_log_write('Unknown time integration option '//trim(config_time_integration), messageType=MPAS_LOG_ERR)
          call mpas_log_write('Currently, only ''SRK3'' is supported.', messageType=MPAS_LOG_CRIT)
       end if
+      call shr_mem_prtusage('GDD atm_timestep 02 post call atm_srk3')
 
       call mpas_set_timeInterval(dtInterval, dt=dt)
       currTime = nowTime + dtInterval
@@ -308,6 +312,8 @@ module atm_time_integration
       ! Write CF-compliant time for advanced timestep
       call mpas_pool_get_array(state, 'Time', Time, 2)
       Time = Time_new
+
+      call shr_mem_prtusage('GDD atm_timestep -1 exit')
 
    end subroutine atm_timestep
 
