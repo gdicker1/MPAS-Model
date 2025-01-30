@@ -332,6 +332,7 @@ module atm_time_integration
    !                  and some diagnostics in diag 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
 
+      use shr_mem_mod, only : shr_mem_prtusage
       implicit none
 
       type (domain_type), intent(inout) :: domain
@@ -399,6 +400,10 @@ module atm_time_integration
 
       real (kind=RKIND)  :: time_dyn_step
       logical, parameter :: debug = .false.
+
+      character(len=1024) :: gdd_tmp
+
+      call shr_mem_prtusage('GDD atm_srk3 00 enter')
 
 
       !
@@ -478,6 +483,7 @@ module atm_time_integration
          call mpas_pool_get_dimension(state, 'index_nr', index_nr)
          call mpas_pool_get_dimension(state, 'index_ni', index_ni)
       endif
+      call shr_mem_prtusage('GDD atm_srk3 01 post get_dimension calls')
 
       !
       ! allocate storage for physics tendency save
@@ -549,11 +555,15 @@ module atm_time_integration
         number_sub_steps(3) = number_of_sub_steps
 
       end if
+      
+      call shr_mem_prtusage('GDD atm_srk3 02 post Initialize RK weight')
 
       !
       ! Communicate halos for theta_m, scalars, pressure_p, and rtheta_p
       !
       call exchange_halo_group(domain, 'dynamics:theta_m,scalars,pressure_p,rtheta_p')
+      
+      call shr_mem_prtusage('GDD atm_srk3 03 post exchange_halo dynamics:theta_m,scalars,pressure_p,rtheta_p')
 
       call mpas_timer_start('atm_rk_integration_setup')
 
@@ -571,6 +581,8 @@ module atm_time_integration
 
       call mpas_timer_stop('atm_rk_integration_setup')
 
+      call shr_mem_prtusage('GDD atm_srk3 04 post atm_rk_integration_setup')
+
       call mpas_timer_start('atm_compute_moist_coefficients')
 
 !$OMP PARALLEL DO
@@ -586,6 +598,7 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
       call mpas_timer_stop('atm_compute_moist_coefficients')
+      call shr_mem_prtusage('GDD atm_srk3 05 post atm_compute_moist_coefficients')
 
 #ifdef DO_PHYSICS
       call mpas_timer_start('physics_get_tend')
@@ -620,6 +633,8 @@ module atm_time_integration
 
          !  Compute the coefficients for the vertically implicit solve in the acoustic step.
          !  These coefficients will work for the first acoustic step in all cases.
+         write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 06 pre atm_compute_vert_imp_coefs substep=', dynamics_substep
+         call shr_mem_prtusage(trim(gdd_tmp))
          call mpas_timer_start('atm_compute_vert_imp_coefs')
 
          rk_step = 1
@@ -633,8 +648,12 @@ module atm_time_integration
          end do
 !$OMP END PARALLEL DO
          call mpas_timer_stop('atm_compute_vert_imp_coefs')
+         write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 07 post atm_compute_vert_imp_coefs substep=', dynamics_substep
+         call shr_mem_prtusage(trim(gdd_tmp))
 
          call exchange_halo_group(domain, 'dynamics:exner')
+         write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 08 post exchange_halo dynamics:exner substep=', dynamics_substep
+         call shr_mem_prtusage(trim(gdd_tmp))
 
 
          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
@@ -659,6 +678,8 @@ module atm_time_integration
 !$OMP END PARALLEL DO
             end if  
 
+            write(gdd_tmp,'(A,I2.2, A, I2.2)') 'GDD atm_srk3 09 pre atm_compute_dyn_tend substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
             call mpas_timer_start('atm_compute_dyn_tend')
    
             allocate(delsq_theta(nVertLevels,nCells+1))
@@ -698,6 +719,8 @@ module atm_time_integration
             deallocate(dpdz)
    
             call mpas_timer_stop('atm_compute_dyn_tend')
+            write(gdd_tmp,'(A,I2.2, A, I2.2)') 'GDD atm_srk3 10 post atm_compute_dyn_tend substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
 
 
             !***********************************
@@ -708,6 +731,8 @@ module atm_time_integration
 
 ! tend_u
             call exchange_halo_group(domain, 'dynamics:tend_u')
+            write(gdd_tmp,'(A,I2.2, A, I2.2)') 'GDD atm_srk3 11 post exchange_halo dynamics:tend_u substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
    
             call mpas_timer_start('small_step_prep')
    
@@ -721,6 +746,8 @@ module atm_time_integration
             end do
 !$OMP END PARALLEL DO
             call mpas_timer_stop('small_step_prep')
+            write(gdd_tmp,'(A,I2.2, A, I2.2)') 'GDD atm_srk3 12 post atm_set_smlstep_pert_variables substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
 
           
 !------------------------------------------------------------------------------------------------------------------------
@@ -782,9 +809,13 @@ module atm_time_integration
             ! begin acoustic steps loop
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+            write(gdd_tmp,'(A,I2.2, A, I2.2)') 'GDD atm_srk3 13 pre small_step loop substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
             do small_step = 1, number_sub_steps(rk_step)
 
                call exchange_halo_group(domain, 'dynamics:rho_pp')
+               write(gdd_tmp,'(A,I2.2,A,I2.2,A,I2.2)') 'GDD atm_srk3 14 post exchange_halo dynamics:rho_pp substep=', dynamics_substep, ' rk_step=', rk_step, ' small_step=', small_step
+               call shr_mem_prtusage(trim(gdd_tmp))
 
                call mpas_timer_start('atm_advance_acoustic_step')
 
@@ -802,12 +833,16 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
                call mpas_timer_stop('atm_advance_acoustic_step')
+               write(gdd_tmp,'(A,I2.2,A,I2.2,A,I2.2)') 'GDD atm_srk3 15 post atm_advance_acoustic_step substep=', dynamics_substep, ' rk_step=', rk_step, ' small_step=', small_step
+               call shr_mem_prtusage(trim(gdd_tmp))
 
   
 ! rtheta_pp
 ! This is the only communications needed during the acoustic steps because we solve for u on all edges of owned cells
 
                call exchange_halo_group(domain, 'dynamics:rtheta_pp')
+               write(gdd_tmp,'(A,I2.2,A,I2.2,A,I2.2)') 'GDD atm_srk3 16 post exchange_halo dynamics:rho_pp substep=', dynamics_substep, ' rk_step=', rk_step, ' small_step=', small_step
+               call shr_mem_prtusage(trim(gdd_tmp))
 
 !  complete update of horizontal momentum by including 3d divergence damping at the end of the acoustic step
 
@@ -821,6 +856,8 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
                call mpas_timer_stop('atm_divergence_damping_3d')
+               write(gdd_tmp,'(A,I2.2,A,I2.2,A,I2.2)') 'GDD atm_srk3 17 post atm_divergence_damping_3d substep=', dynamics_substep, ' rk_step=', rk_step, ' small_step=', small_step
+               call shr_mem_prtusage(trim(gdd_tmp))
 
             end do  ! end of acoustic steps loop
 
@@ -828,6 +865,8 @@ module atm_time_integration
             ! Communicate halos for rw_p[1,2], ru_p[1,2], rho_pp[1,2], rtheta_pp[2]
             !
             call exchange_halo_group(domain, 'dynamics:rw_p,ru_p,rho_pp,rtheta_pp')
+            write(gdd_tmp,'(A,I2.2,A,I2.2)') 'GDD atm_srk3 18 post exchange_halo dynamics:rw_p,ru_p,rho_pp,rtheta_p substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
 
             call mpas_timer_start('atm_recover_large_step_variables')
 
@@ -845,6 +884,8 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
             call mpas_timer_stop('atm_recover_large_step_variables')
+            write(gdd_tmp,'(A,I2.2,A,I2.2)') 'GDD atm_srk3 19 post atm_recover_large_step_variables substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
 
 !-------------------------------------------------------------------
 
@@ -892,6 +933,8 @@ module atm_time_integration
             else
                call exchange_halo_group(domain, 'dynamics:u_3')
             end if
+            write(gdd_tmp,'(A,I2.2,A,I2.2)') 'GDD atm_srk3 20 post exchange_halo dynamics:u_{123,3} substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
 
             ! scalar advection: RK3 scheme of Skamarock and Gassmann (2011). 
             ! PD or monotonicity constraints applied only on the final Runge-Kutta substep.
@@ -949,6 +992,8 @@ module atm_time_integration
 
             end if
 
+            write(gdd_tmp,'(A,I2.2,A,I2.2)') 'GDD atm_srk3 21 pre atm_compute_solve_diagnostics substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
             call mpas_timer_start('atm_compute_solve_diagnostics')
 
             allocate(ke_vertex(nVertLevels,nVertices+1))
@@ -969,6 +1014,8 @@ module atm_time_integration
             deallocate(ke_edge)
 
             call mpas_timer_stop('atm_compute_solve_diagnostics')
+            write(gdd_tmp,'(A,I2.2,A,I2.2)') 'GDD atm_srk3 22 post atm_compute_solve_diagnostics substep=', dynamics_substep, ' rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
 
             if (config_scalar_advection .and. (.not. config_split_dynamics_transport) ) then
                !
@@ -980,6 +1027,8 @@ module atm_time_integration
                ! Communicate halos for w[1,2], pv_edge[1,2], rho_edge[1,2]
                !
                call exchange_halo_group(domain, 'dynamics:w,pv_edge,rho_edge')
+               write(gdd_tmp,'(A,I2.2,A,I2.2)') 'GDD atm_srk3 23 exchange_halo dynamics:w,pv_edge,rho_edge substep=', dynamics_substep, ' rk_step=', rk_step
+               call shr_mem_prtusage(trim(gdd_tmp))
             end if
 
             ! set the zero-gradient condition on w for regional_MPAS
@@ -999,6 +1048,9 @@ module atm_time_integration
             end if ! end of regional_MPAS addition 
 
          end do RK3_DYNAMICS
+               
+         write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 24 post rk_step-loop substep=', dynamics_substep
+         call shr_mem_prtusage(trim(gdd_tmp))
 
          if (dynamics_substep < dynamics_split) then
 
@@ -1006,6 +1058,8 @@ module atm_time_integration
             ! Communicate halos for theta_m[1,2], pressure_p[1,2], and rtheta_p[1,2]
             !
             call exchange_halo_group(domain, 'dynamics:theta_m,pressure_p,rtheta_p')
+            write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 25 post exchange_halo dynamics:theta_m,pressure_p,rtheta_p substep=', dynamics_substep
+            call shr_mem_prtusage(trim(gdd_tmp))
 
             !
             ! Note: A halo exchange for 'exner' here as well as after the call
@@ -1021,6 +1075,8 @@ module atm_time_integration
          !  (2) need to accumulate ruAvg and wwAvg over the dynamics substeps, prepare for use in transport
          !  Notes:  physics tendencies for scalars should be OK coming out of dynamics
 
+         write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 26 pre atm_rk_dynamics_substep_finish substep=', dynamics_substep
+         call shr_mem_prtusage(trim(gdd_tmp))
          call mpas_timer_start('atm_rk_dynamics_substep_finish')
 
 !$OMP PARALLEL DO
@@ -1036,8 +1092,12 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
          call mpas_timer_stop('atm_rk_dynamics_substep_finish')
+         write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 27 post atm_rk_dynamics_substep_finish substep=', dynamics_substep
+         call shr_mem_prtusage(trim(gdd_tmp))
 
       end do DYNAMICS_SUBSTEPS
+      write(gdd_tmp,'(A)') 'GDD atm_srk3 28 post dynamics_substep-loop'
+      call shr_mem_prtusage(trim(gdd_tmp))
 
 
       deallocate(qtot)  !  we are finished with these now
@@ -1049,6 +1109,7 @@ module atm_time_integration
 #endif
 
 
+      
       !
       !  split transport, at present RK3
       !
@@ -1061,12 +1122,17 @@ module atm_time_integration
          !  switch for 2nd order time integration for scalar transport
          if(config_time_integration_order == 2) rk_timestep(1) = dt/2.
 
+         
+         write(gdd_tmp,'(A)') 'GDD atm_srk3 29 pre RK3_SPLIT_TRANSPORT loop'
+         call shr_mem_prtusage(trim(gdd_tmp))
          RK3_SPLIT_TRANSPORT : do rk_step = 1, 3  ! Runge-Kutta loop
 
 
             call advance_scalars('scalars', domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                                  config_time_integration_order, config_split_dynamics_transport, exchange_halo_group)
 
+            write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 30 post advance_scalars rk_step=', rk_step
+            call shr_mem_prtusage(trim(gdd_tmp))
             if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
 
                ! need to fill halo for horizontal filter
@@ -1118,15 +1184,21 @@ module atm_time_integration
 
             if (rk_step < 3) then
                call exchange_halo_group(domain, 'dynamics:scalars')
+               write(gdd_tmp,'(A,I2.2)') 'GDD atm_srk3 31 post exchange_halo dynamics:scalars rk_step=', rk_step
+               call shr_mem_prtusage(trim(gdd_tmp))
             end if
 
          end do RK3_SPLIT_TRANSPORT
+         write(gdd_tmp,'(A)') 'GDD atm_srk3 32 post RK3_SPLIT_TRANSPORT loop'
+         call shr_mem_prtusage(trim(gdd_tmp))
 
       end if
 
       !
       ! reconstruct full velocity vectors at cell centers:
       !
+      write(gdd_tmp,'(A)') 'GDD atm_srk3 33 pre mpas_reconstruct'
+      call shr_mem_prtusage(trim(gdd_tmp))
       call mpas_pool_get_array(state, 'u', u, 2)
       call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
       call mpas_pool_get_array(diag, 'uReconstructY', uReconstructY)
@@ -1273,8 +1345,12 @@ module atm_time_integration
 
       end if  ! regional_MPAS addition
 
+      write(gdd_tmp,'(A)') 'GDD atm_srk3 34 pre summarize_timestep'
+      call shr_mem_prtusage(trim(gdd_tmp))
+      
       call summarize_timestep(domain)
 
+      call shr_mem_prtusage('GDD atm_srk3 -1 exit')
    end subroutine atm_srk3
 
 
