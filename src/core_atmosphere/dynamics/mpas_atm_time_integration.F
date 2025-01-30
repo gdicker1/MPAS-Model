@@ -1383,6 +1383,7 @@ module atm_time_integration
    subroutine advance_scalars(field_name, domain, rk_step, rk_timestep, config_monotonic, config_positive_definite, &
                               config_time_integration_order, config_split_dynamics_transport, exchange_halo_group)
 
+      use shr_mem_mod, only : shr_mem_prtusage
       implicit none
 
       ! Arguments
@@ -1417,6 +1418,8 @@ module atm_time_integration
       integer, dimension(:), pointer :: cellSolveThreadEnd
       integer, dimension(:), pointer :: edgeThreadStart
       integer, dimension(:), pointer :: edgeThreadEnd
+
+      call shr_mem_prtusage('GDD advance_scalars 00 enter')
 
 
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
@@ -1474,6 +1477,8 @@ module atm_time_integration
          flux_tmp_arr(:,nEdges+1) = 0.0_RKIND
       end if
 
+      call shr_mem_prtusage('GDD advance_scalars 01 post allocates, pre routines')
+
       !
       ! Note: The advance_scalars_mono routine can be used without limiting, and thus, encompasses 
       !       the functionality of the advance_scalars routine; however, it is noticeably slower, 
@@ -1487,6 +1492,7 @@ module atm_time_integration
                                      cellSolveThreadStart(thread), cellSolveThreadEnd(thread), &
                                      horiz_flux_array, rk_step, config_time_integration_order, &
                                      advance_density=config_split_dynamics_transport)
+            call shr_mem_prtusage('GDD advance_scalars 02 post atm_advance_scalars')
          else
             call atm_advance_scalars_mono(field_name, block, tend, state, diag, mesh, halo_scratch, &
                                           block % configs, rk_timestep(rk_step), &
@@ -1497,9 +1503,11 @@ module atm_time_integration
                                           flux_array, flux_upwind_tmp_arr, flux_tmp_arr, &
                                           exchange_halo_group, &
                                           advance_density=config_split_dynamics_transport, rho_zz_int=rho_zz_int)
+            call shr_mem_prtusage('GDD advance_scalars 03 post atm_advance_scalars_mono')
          end if
       end do
       !$OMP END PARALLEL DO
+      call shr_mem_prtusage('GDD advance_scalars 04 post routines, pre deallocates')
 
       deallocate(scalar_old_arr)
       deallocate(scalar_new_arr)
@@ -1515,12 +1523,14 @@ module atm_time_integration
          deallocate(flux_upwind_tmp_arr)
          deallocate(flux_tmp_arr)
       end if
+      call shr_mem_prtusage('GDD advance_scalars 05 post deallocates')
 
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
          call mpas_timer_stop('atm_advance_scalars')
       else
          call mpas_timer_stop('atm_advance_scalars_mono')
       end if
+      call shr_mem_prtusage('GDD advance_scalars -1 exit')
 
    end subroutine advance_scalars
 
@@ -2844,6 +2854,7 @@ module atm_time_integration
                                   cellSolveStart, cellSolveEnd, &
                                   horiz_flux_arr, rk_step, config_time_integration_order, advance_density)
 
+      use shr_mem_mod, only : shr_mem_prtusage
       implicit none
 
       ! Arguments
@@ -2884,6 +2895,8 @@ module atm_time_integration
       integer, dimension(:), pointer :: bdyMaskCell, bdyMaskEdge    ! regional_MPAS addition
 
       logical :: local_advance_density
+
+      call shr_mem_prtusage('GDD atm_advance_scalars 00 enter')
 
 
       if (present(advance_density)) then
@@ -2938,6 +2951,7 @@ module atm_time_integration
              nEdges, horiz_flux_arr, rk_step, config_time_integration_order, &
              local_advance_density)
 
+      call shr_mem_prtusage('GDD atm_advance_scalars -1 exit')
    end subroutine atm_advance_scalars
 
 
@@ -2982,6 +2996,7 @@ module atm_time_integration
              advance_density)
 
       use mpas_atm_dimensions, only : nVertLevels
+      use shr_mem_mod, only : shr_mem_prtusage
 
       implicit none
 
@@ -3034,6 +3049,8 @@ module atm_time_integration
       flux3(q_im2, q_im1, q_i, q_ip1, ua, coef3) =              &
                 flux4(q_im2, q_im1, q_i, q_ip1, ua) +           &
                 coef3*abs(ua)*((q_ip1 - q_im2)-3.*(q_i-q_im1))/12.0
+
+      call shr_mem_prtusage('GDD atm_advance_scalars_work 00 enter')
 
       local_advance_density = advance_density
 
@@ -3207,6 +3224,7 @@ module atm_time_integration
 
       end do
 
+      call shr_mem_prtusage('GDD atm_advance_scalars_work -1 exit')
    end subroutine atm_advance_scalars_work
 
 
@@ -3226,6 +3244,8 @@ module atm_time_integration
                                        cellSolveStart, cellSolveEnd, &
                                        scalar_old, scalar_new, s_max, s_min, wdtn, flux_arr, &
                                        flux_upwind_tmp, flux_tmp, exchange_halo_group, advance_density, rho_zz_int)
+
+      use shr_mem_mod, only : shr_mem_prtusage
 
       implicit none
 
@@ -3276,6 +3296,7 @@ module atm_time_integration
       type (field3DReal), pointer :: scale
       real (kind=RKIND), dimension(:,:,:), pointer :: scale_arr
 
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono 00 enter')
 
       call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
 
@@ -3313,7 +3334,9 @@ module atm_time_integration
       call mpas_pool_get_array(mesh, 'bdyMaskEdge', bdyMaskEdge)  ! MPAS_regional addition
 
       call mpas_pool_get_field(halo_scratch, 'scale', scale)
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono 01 pre allocate_scratch_field(scale)')
       call mpas_allocate_scratch_field(scale)
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono 02 post allocate_scratch_field(scale)')
       call mpas_pool_get_array(halo_scratch, 'scale', scale_arr)
 
       call atm_advance_scalars_mono_work(block, state, nCells, nEdges, num_scalars, dt, &
@@ -3327,8 +3350,11 @@ module atm_time_integration
                                    bdyMaskCell, bdyMaskEdge, &
                                    exchange_halo_group, advance_density, rho_zz_int)
 
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono 03 pre deallocate_scratch_field(scale)')
       call mpas_deallocate_scratch_field(scale)
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono 04 post deallocate_scratch_field(scale)')
 
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono -1 exit')
    end subroutine atm_advance_scalars_mono
 
 
@@ -3376,6 +3402,7 @@ module atm_time_integration
                                    exchange_halo_group, advance_density, rho_zz_int)
 
       use mpas_atm_dimensions, only : nVertLevels
+      use shr_mem_mod, only : shr_mem_prtusage
 
       implicit none
 
@@ -3449,6 +3476,8 @@ module atm_time_integration
       flux3(q_im2, q_im1, q_i, q_ip1, ua, coef3) =              &
                 flux4(q_im2, q_im1, q_i, q_ip1, ua) +           &
                 coef3*abs(ua)*((q_ip1 - q_im2)-3.*(q_i-q_im1))/12.0
+
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono_work 00 enter')
 
       if (present(advance_density)) then
          local_advance_density = advance_density
@@ -3923,6 +3952,7 @@ module atm_time_integration
 
       end do !  loop over scalars
 
+      call shr_mem_prtusage('GDD atm_advance_scalars_mono_work -1 exit')
    end subroutine atm_advance_scalars_mono_work
 
 
