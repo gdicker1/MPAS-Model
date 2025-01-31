@@ -1509,20 +1509,21 @@ module atm_time_integration
       !$OMP END PARALLEL DO
       call shr_mem_prtusage('GDD advance_scalars 04 post routines, pre deallocates')
 
-      deallocate(scalar_old_arr)
-      deallocate(scalar_new_arr)
-      deallocate(s_max_arr)
-      deallocate(s_min_arr)
-      deallocate(flux_array)
-      deallocate(wdtn_arr)
-      deallocate(rho_zz_int)
-
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
          deallocate(horiz_flux_array)
       else
-         deallocate(flux_upwind_tmp_arr)
          deallocate(flux_tmp_arr)
+         deallocate(flux_upwind_tmp_arr)
       end if
+
+      deallocate(rho_zz_int)
+      deallocate(wdtn_arr)
+      deallocate(flux_array)
+      deallocate(s_min_arr)
+      deallocate(s_max_arr)
+      deallocate(scalar_new_arr)
+      deallocate(scalar_old_arr)
+
       call shr_mem_prtusage('GDD advance_scalars 05 post deallocates')
 
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
