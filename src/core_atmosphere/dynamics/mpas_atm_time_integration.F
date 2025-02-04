@@ -181,6 +181,10 @@ module atm_time_integration
       implicit none
 
       type (domain_type), intent(inout) :: domain
+      type (mpas_pool_type), pointer :: state
+      logical, pointer :: config_split_dynamics_transport
+      integer, pointer :: nVertLevels, nCells, nEdges, num_scalars
+
 
 #ifdef MPAS_CAM_DYCORE
       ! Used in allocating scratch fields for physics tendencies
@@ -202,6 +206,29 @@ module atm_time_integration
       call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
       call mpas_allocate_scratch_field(tend_ru_physicsField)
 #endif
+      call mpas_pool_get_config(domain % configs, 'config_split_dynamics_transport', config_split_dynamics_transport)
+      call mpas_pool_get_subpool(domain % blocklist % structs, 'state', state)
+      call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels)
+      call mpas_pool_get_dimension(state, 'nCells', nCells)
+      call mpas_pool_get_dimension(state, 'nEdges', nEdges)
+      call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
+      allocate(scalar_old_arr(nVertLevels,nCells+1))
+      allocate(scalar_new_arr(nVertLevels,nCells+1))
+      allocate(s_max_arr(nVertLevels,nCells+1))
+      allocate(s_min_arr(nVertLevels,nCells+1))
+      allocate(flux_array(nVertLevels,nEdges+1))
+      allocate(wdtn_arr(nVertLevels+1,nCells+1))
+      if (config_split_dynamics_transport) then
+         allocate(rho_zz_int(nVertLevels,nCells+1))
+      else
+         allocate(rho_zz_int(1,1))
+      end if
+      ! if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
+         allocate(horiz_flux_array(num_scalars,nVertLevels,nEdges+1))
+      ! else
+         allocate(flux_upwind_tmp_arr(nVertLevels,nEdges+1))
+         allocate(flux_tmp_arr(nVertLevels,nEdges+1))
+      !end if
 
    end subroutine mpas_atm_dynamics_init
 
@@ -247,6 +274,21 @@ module atm_time_integration
       call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
       call mpas_deallocate_scratch_field(tend_ru_physicsField)
 #endif
+
+      ! if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
+         deallocate(horiz_flux_array)
+      ! else
+         deallocate(flux_tmp_arr)
+         deallocate(flux_upwind_tmp_arr)
+      ! end if
+
+      deallocate(rho_zz_int)
+      deallocate(wdtn_arr)
+      deallocate(flux_array)
+      deallocate(s_min_arr)
+      deallocate(s_max_arr)
+      deallocate(scalar_new_arr)
+      deallocate(scalar_old_arr)
 
    end subroutine mpas_atm_dynamics_finalize
 
@@ -1449,31 +1491,32 @@ module atm_time_integration
       call mpas_pool_get_dimension(block % dimensions, 'edgeThreadStart', edgeThreadStart)
       call mpas_pool_get_dimension(block % dimensions, 'edgeThreadEnd', edgeThreadEnd)
 
-      allocate(scalar_old_arr(nVertLevels,nCells+1))
+      ! Move the allocates to mpas_atm_dynamics_init
+      ! allocate(scalar_old_arr(nVertLevels,nCells+1))
       scalar_old_arr(:,nCells+1) = 0.0_RKIND
-      allocate(scalar_new_arr(nVertLevels,nCells+1))
+      ! allocate(scalar_new_arr(nVertLevels,nCells+1))
       scalar_new_arr(:,nCells+1) = 0.0_RKIND
-      allocate(s_max_arr(nVertLevels,nCells+1))
+      ! allocate(s_max_arr(nVertLevels,nCells+1))
       s_max_arr(:,nCells+1) = 0.0_RKIND
-      allocate(s_min_arr(nVertLevels,nCells+1))
+      ! allocate(s_min_arr(nVertLevels,nCells+1))
       s_min_arr(:,nCells+1) = 0.0_RKIND
-      allocate(flux_array(nVertLevels,nEdges+1))
+      ! allocate(flux_array(nVertLevels,nEdges+1))
       flux_array(:,nEdges+1) = 0.0_RKIND
-      allocate(wdtn_arr(nVertLevels+1,nCells+1))
+      ! allocate(wdtn_arr(nVertLevels+1,nCells+1))
       wdtn_arr(:,nCells+1) = 0.0_RKIND
       if (config_split_dynamics_transport) then
-         allocate(rho_zz_int(nVertLevels,nCells+1))
+         ! allocate(rho_zz_int(nVertLevels,nCells+1))
          rho_zz_int(:,nCells+1) = 0.0_RKIND
       else
-         allocate(rho_zz_int(1,1))
+         ! allocate(rho_zz_int(1,1))
       end if
       if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
-         allocate(horiz_flux_array(num_scalars,nVertLevels,nEdges+1))
+         ! allocate(horiz_flux_array(num_scalars,nVertLevels,nEdges+1))
          horiz_flux_array(:,:,nEdges+1) = 0.0_RKIND
       else
-         allocate(flux_upwind_tmp_arr(nVertLevels,nEdges+1))
+         ! allocate(flux_upwind_tmp_arr(nVertLevels,nEdges+1))
          flux_upwind_tmp_arr(:,nEdges+1) = 0.0_RKIND
-         allocate(flux_tmp_arr(nVertLevels,nEdges+1))
+         ! allocate(flux_tmp_arr(nVertLevels,nEdges+1))
          flux_tmp_arr(:,nEdges+1) = 0.0_RKIND
       end if
 
@@ -1509,20 +1552,21 @@ module atm_time_integration
       !$OMP END PARALLEL DO
       call shr_mem_prtusage('GDD advance_scalars 04 post routines, pre deallocates')
 
-      if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
-         deallocate(horiz_flux_array)
-      else
-         deallocate(flux_tmp_arr)
-         deallocate(flux_upwind_tmp_arr)
-      end if
+      ! Move these deallocates to mpas_atm_dynamics_finalize
+      ! if (rk_step < 3 .or. (.not. config_monotonic .and. .not. config_positive_definite)) then
+      !    deallocate(horiz_flux_array)
+      ! else
+      !    deallocate(flux_tmp_arr)
+      !    deallocate(flux_upwind_tmp_arr)
+      ! end if
 
-      deallocate(rho_zz_int)
-      deallocate(wdtn_arr)
-      deallocate(flux_array)
-      deallocate(s_min_arr)
-      deallocate(s_max_arr)
-      deallocate(scalar_new_arr)
-      deallocate(scalar_old_arr)
+      ! deallocate(rho_zz_int)
+      ! deallocate(wdtn_arr)
+      ! deallocate(flux_array)
+      ! deallocate(s_min_arr)
+      ! deallocate(s_max_arr)
+      ! deallocate(scalar_new_arr)
+      ! deallocate(scalar_old_arr)
 
       call shr_mem_prtusage('GDD advance_scalars 05 post deallocates')
 
