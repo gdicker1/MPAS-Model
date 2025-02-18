@@ -323,6 +323,24 @@ module mpas_vector_reconstruction
       end do
       !$acc end parallel
       !$omp end do
+      
+      ! Re-do calculation on CPU due to sin and cos functions
+      !$acc update host(uReconstructX(:,1:nCells),uReconstructY(:,1:nCells),uReconstructZ(:,1:nCells))
+      do iCell = 1, nCells
+        clat = cos(latCell(iCell))
+        slat = sin(latCell(iCell))
+        clon = cos(lonCell(iCell))
+        slon = sin(lonCell(iCell))
+        !$acc loop vector
+        do k=1,nVertLevels
+          uReconstructZonal(k,iCell) = -uReconstructX(k,iCell)*slon + &
+                                        uReconstructY(k,iCell)*clon
+          uReconstructMeridional(k,iCell) = -(uReconstructX(k,iCell)*clon       &
+                                            + uReconstructY(k,iCell)*slon)*slat &
+                                            + uReconstructZ(k,iCell)*clat
+        end do
+      end do
+      !$acc update device(uReconstructZonal(:,1:nCells),uReconstructMeridional(:,1:nCells))
     else
       !$omp do schedule(runtime)
       !$acc parallel default(present)
