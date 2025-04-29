@@ -663,9 +663,17 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
-                    !$acc data copyin(sendListDst(1:nHalos,1:nSendEndpts), group % fields(i) % r2arr(:,:), sendListSrc(1:maxNSendList,1:nHalos,1:nSendEndPts)) &
-                    !$acc      copyout(group % sendBuff(1:group % groupSendBufSize))
-                    !$acc kernels
+                    !$acc data copyin(group, group % fields(i), group % fields(i) % r2arr(1:dim1,:)) &
+                    !$acc      copyin(sendListDst(1:maxNSendList,1:nHalos,1:nSendEndpts), sendListSrc(1:maxNSendList,1:nHalos,1:nSendEndpts), packOffsets(1:nSendEndpts), nSendLists(1:nHalos,1:nSendEndpts)) &
+                    !$acc      copyout(group % sendBuf(1:group % groupSendBufSize))
+                        print *, "GDD testing acc data region..."
+                    !$acc end data
+
+
+                    !$acc data copyin(group, group % fields(i), group % fields(i) % r2arr(1:dim1,:)) &
+                    !$acc      copyin(sendListDst(1:maxNSendList,1:nHalos,1:nSendEndpts), sendListSrc(1:maxNSendList,1:nHalos,1:nSendEndpts), packOffsets(1:nSendEndpts), nSendLists(1:nHalos,1:nSendEndpts)) &
+                    !$acc      copyout(group % sendBuf(1:group % groupSendBufSize))
+                    !$acc parallel default(present)
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
                             do j = 1, maxNSendList
@@ -678,7 +686,7 @@ module mpas_halo
                             end do
                         end do
                     end do
-                    !$acc end kernels
+                    !$acc end parallel
                     !$acc end data
 
                 !
