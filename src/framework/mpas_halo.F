@@ -665,6 +665,8 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
+                    !$acc data copyin(sendListDst(1:nHalos,1:nSendEndpts), group % fields(i) % r2arr(:,:), sendListSrc(1:maxNSendList,1:nHalos,1:nSendEndPts)) &
+                    !$acc      copyout(group % sendBuff(1:group % groupSendBufSize))
                     !$acc kernels
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
@@ -679,6 +681,7 @@ module mpas_halo
                         end do
                     end do
                     !$acc end kernels
+                    !$acc end data
 
                 !
                 ! Packing code for 3-d real-valued fields
