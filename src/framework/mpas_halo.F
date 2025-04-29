@@ -642,7 +642,6 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
-                    !$acc kernels
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
                             do j = 1, maxNSendList
@@ -653,7 +652,6 @@ module mpas_halo
                             end do
                         end do
                     end do
-                    !$acc end kernels
 
                 !
                 ! Packing code for 2-d real-valued fields
@@ -693,7 +691,6 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
-                    !$acc kernels
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
                             do j = 1, maxNSendList
@@ -709,7 +706,6 @@ module mpas_halo
                             end do
                         end do
                     end do
-                    !$acc end kernels
 
                 end select
             end if
@@ -780,7 +776,6 @@ module mpas_halo
                         !
                         ! Unpack recv buffer from all neighbors for current field
                         !
-                        !$acc kernels
                         do iHalo = 1, nHalos
                             do j = 1, maxNRecvList
                                 if (j <= nRecvLists(iHalo,iEndp)) then
@@ -789,7 +784,6 @@ module mpas_halo
                                 end if
                             end do
                         end do
-                        !$acc end kernels
 
                     !
                     ! Unpacking code for 2-d real-valued fields
@@ -798,7 +792,6 @@ module mpas_halo
                         !
                         ! Unpack recv buffer from all neighbors for current field
                         !
-                        !$acc kernels
                         do iHalo = 1, nHalos
                             do j = 1, maxNRecvList
                                 do i1 = 1, dim1
@@ -809,7 +802,6 @@ module mpas_halo
                                 end do
                             end do
                         end do
-                        !$acc end kernels
 
                     !
                     ! Unpacking code for 3-d real-valued fields
@@ -818,7 +810,6 @@ module mpas_halo
                         !
                         ! Unpack recv buffer from all neighbors for current field
                         !
-                        !$acc kernels
                         do iHalo = 1, nHalos
                             do j = 1, maxNRecvList
                                 do i2 = 1, dim2
@@ -832,7 +823,6 @@ module mpas_halo
                                 end do
                             end do
                         end do
-                        !$acc end kernels
 
                     end select
                 end if
