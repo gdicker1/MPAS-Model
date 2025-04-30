@@ -589,10 +589,13 @@ module mpas_halo
 #endif
         rank = group % fields(1) % compactHaloInfo(8)
 
-        !$acc enter data copyin(group, group % fields(1:group % nFields), group % groupSendBufSize, group % groupRecvBufSize, &
+        ! First copyin the "parent" member
+        !$acc enter data copyin(group)
+        ! Then copyin it's "children" (esp. pointers and allocatables)
+        !$acc enter data copyin(group % fields(1:group % nFields), group % groupSendBufSize, group % groupRecvBufSize, &
         !$acc                   group % groupRecvCounts(1:group % nGroupRecvNeighbors), group % groupRecvOffsets(group % nGroupRecvNeighbors), group % groupRecvNeighbors(group % nGroupRecvNeighbors), &
-        !$acc                   group % groupSendCounts(1:group % nGroupSendNeighbors), group % groupSendOffsets(group % nGroupSendNeighbors), group % groupSendNeighbors(group % nGroupSendNeighbors)) &
-        !$acc            create(group % sendBuf(1:group % groupSendBufSize), group % recvBuf(1:group % groupRecvBufSize), group % sendRequests(group % nGroupSendNeighbors), group % recvRequests(group % nGroupRecvNeighbors))
+        !$acc                   group % groupSendCounts(1:group % nGroupSendNeighbors), group % groupSendOffsets(1:group % nGroupSendNeighbors), group % groupSendNeighbors(1:group % nGroupSendNeighbors)) &
+        !$acc            create(group % sendBuf(1:group % groupSendBufSize), group % recvBuf(1:group % groupRecvBufSize), group % sendRequests(1:group % nGroupSendNeighbors), group % recvRequests(1:group % nGroupRecvNeighbors))
 
         !
         ! Initiate non-blocking MPI receives for all neighbors
@@ -635,8 +638,8 @@ module mpas_halo
                 maxNSendList = group % fields(i) % maxNSendList
 
                 ! Copyin these items for re-use later
-                !$acc enter data copyin(group % fields(i), &
-                !$acc                   group % fields(i) % compactHaloInfo, group % fields(i) % compactSendLists, &
+                !$acc enter data copyin(group % fields(i))
+                !$acc enter data copyin(group % fields(i) % compactHaloInfo, group % fields(i) % compactSendLists, &
                 !$acc                   group % fields(i) % sendListSrc, group % fields(i) % sendListDst, group % fields(i) % nSendLists, group % fields(i) % packOffsets, group % fields(i) % maxNSendList, &
                 !$acc                   group % fields(i) % recvListSrc, group % fields(i) % recvListDst, group % fields(i) % nrecvLists, group % fields(i) % unpackOffsets, group % fields(i) % maxNrecvList)
 
@@ -675,12 +678,10 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
-                    !$acc parallel default(present) copyin(group % fields(i) % r2arr)
-                    !$acc loop gang
+                    !$acc parallel loop default(present) copyin(group % fields(i) % r2arr(1:dim1,:))
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
                             do j = 1, maxNSendList
-                                !$acc loop vector
                                 do i1 = 1, dim1
                                     if (j <= nSendLists(iHalo,iEndp)) then
                                         group % sendBuf(packOffsets(iEndp) + dim1 * (sendListDst(j,iHalo,iEndp) - 1) + i1) = &
@@ -691,7 +692,7 @@ module mpas_halo
                         end do
                     end do
                     !$acc end parallel
-                    !$acc update host(group % sendBuf(packOffsets(1)+dim1*(sendListDst(1,1,1)-1)+1:packOffsets(iEndp)+dim1*(sendListDst(j,iHalo,iEndp)-1)+i1))
+                    !$acc update host(group % sendBuf(packOffsets(1)+dim1*(sendListDst(1,1,1)-1)+1:packOffsets(nSendEndpts)+dim1*(sendListDst(nSendLists(nHalos,nSendEndpts),nHalos,nSendEndpts)-1)+dim1))
 
                 !
                 ! Packing code for 3-d real-valued fields
