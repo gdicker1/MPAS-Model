@@ -609,7 +609,11 @@ module mpas_halo
         !
         ! Pack the segmented send buffer with elements from all fields and for all neighbors
         !
+        call mpas_log_write("$i: GDD start packing for groupname='"//group % groupName//"'", &
+                       intArgs=(/rank/), masterOnly=.false., flushNow=.true.)
         do i = 1, group % nFields
+            call mpas_log_write("$i: GDD packing for i=$i field='"//group % fields(i) % fieldName//"'", &
+                           intArgs=(/rank, i/), masterOnly=.false., flushNow=.true.)
 
             compactHaloInfo => group % fields(i) % compactHaloInfo
             compactSendLists => group % fields(i) % compactSendLists
@@ -675,6 +679,8 @@ module mpas_halo
                             end do
                         end do
                     end do
+            call mpas_log_write("$i: GDD finished packing 2dim for i=$i", &
+                           intArgs=(/rank, i/), masterOnly=.false., flushNow=.true.)
 
                 !
                 ! Packing code for 3-d real-valued fields
@@ -704,8 +710,14 @@ module mpas_halo
 
                 end select
             end if
+            call mpas_log_write("$i: GDD finished packing for i=$i", &
+                           intArgs=(/rank, i/), masterOnly=.false., flushNow=.true.)
         end do
 
+        ! call mpas_log_write("$i: GDD finished GPU packing sendBuf", &
+        !                intArgs=(/rank/), masterOnly=.false., flushNow=.true.)
+        call mpas_log_write("$i: GDD finished packing sendBuf", &
+                       intArgs=(/rank/), masterOnly=.false., flushNow=.true.)
         !
         ! Initiate non-blocking sends to all neighbors
         !
