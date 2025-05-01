@@ -664,9 +664,19 @@ module mpas_halo
                     call mpas_pool_get_array(domain % blocklist % allFields, trim(group % fields(i) % fieldName), &
                                              group % fields(i) % r2arr, timeLevel=group % fields(i) % timeLevel)
 
+                    !$acc data copyin(group % fields(i) % r2arr(:,:), nSendLists(:,:), packOffsets(:), sendListDst(:,:,:), sendListSrc(:,:,:)) &
+                    !$acc      copy(group % sendBuf(:))
+
+                    call mpas_log_write("$i: GDD check ACC data region for i=$i", &
+                                        intArgs=(/rank,i/), masterOnly=.false., flushNow=.true.)
+
+                    !$acc end data
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
+                    !$acc data copyin(group % fields(i) % r2arr(:,:), nSendLists(:,:), packOffsets(:), sendListDst(:,:,:), sendListSrc(:,:,:)) &
+                    !$acc      copy(group % sendBuf(:))
+                    !$acc kernels
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
                             do j = 1, maxNSendList
@@ -679,6 +689,8 @@ module mpas_halo
                             end do
                         end do
                     end do
+                    !$acc end kernels
+                    !$acc end data
             call mpas_log_write("$i: GDD finished packing 2dim for i=$i", &
                            intArgs=(/rank, i/), masterOnly=.false., flushNow=.true.)
 
