@@ -664,7 +664,8 @@ module mpas_halo
                     call mpas_pool_get_array(domain % blocklist % allFields, trim(group % fields(i) % fieldName), &
                                              group % fields(i) % r2arr, timeLevel=group % fields(i) % timeLevel)
 
-                    !$acc data copyin(group % fields(i) % r2arr(:,:), nSendLists(:,:), packOffsets(:), sendListDst(:,:,:), sendListSrc(:,:,:)) &
+                    !$acc data copyin(group, group % fields(i), group % fields(i) % r2arr(1:dim1,:)) &
+                    !$acc      copyin(nSendLists(1:nHalos,1:nSendEndpts), packOffsets(1:nSendEndpts), sendListDst(1:maxNSendList,1:nHalos,1:nSendEndpts), sendListSrc(1:maxNSendList,1:nHalos,1:nSendEndpts)) &
                     !$acc      copy(group % sendBuf(:))
 
                     call mpas_log_write("$i: GDD check ACC data region for i=$i", &
@@ -674,7 +675,8 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
-                    !$acc data copyin(group % fields(i) % r2arr(:,:), nSendLists(:,:), packOffsets(:), sendListDst(:,:,:), sendListSrc(:,:,:)) &
+                    !$acc data copyin(group, group % fields(i), group % fields(i) % r2arr(1:dim1,:)) &
+                    !$acc      copyin(nSendLists(1:nHalos,1:nSendEndpts), packOffsets(1:nSendEndpts), sendListDst(1:maxNSendList,1:nHalos,1:nSendEndpts), sendListSrc(1:maxNSendList,1:nHalos,1:nSendEndpts)) &
                     !$acc      copy(group % sendBuf(:))
                     !$acc kernels
                     do iEndp = 1, nSendEndpts
