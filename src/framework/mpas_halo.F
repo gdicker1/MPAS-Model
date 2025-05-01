@@ -657,8 +657,11 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
+                    ! !$acc parallel default(present) copyin(group % fields(i) % r1arr)
+                    ! !$acc loop gang
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
+                            ! !$acc loop vector
                             do j = 1, maxNSendList
                                 if (j <= nSendLists(iHalo,iEndp)) then
                                     group % sendBuf(packOffsets(iEndp) + sendListDst(j,iHalo,iEndp)) = &
@@ -667,6 +670,7 @@ module mpas_halo
                             end do
                         end do
                     end do
+                    ! !$acc end parallel
 
                 !
                 ! Packing code for 2-d real-valued fields
@@ -704,10 +708,13 @@ module mpas_halo
                     !
                     ! Pack send buffer for all neighbors for current field
                     !
+                    ! !$acc parallel default(present) copyin(group % fields(i) % r3arr)
+                    ! !$acc loop gang
                     do iEndp = 1, nSendEndpts
                         do iHalo = 1, nHalos
                             do j = 1, maxNSendList
                                 do i2 = 1, dim2
+                                ! !$acc loop vector
                                 do i1 = 1, dim1
                                     if (j <= nSendLists(iHalo,iEndp)) then
                                         group % sendBuf(packOffsets(iEndp) + dim1*dim2*(sendListDst(j,iHalo,iEndp) - 1) &
@@ -719,11 +726,14 @@ module mpas_halo
                             end do
                         end do
                     end do
+                    ! !$acc end parallel
 
                 end select
                 !$acc end data
             end if
         end do
+
+        ! !$acc update host(group % sendBuf(1:group % groupSendBufSize))
 
         !
         ! Initiate non-blocking sends to all neighbors
@@ -773,6 +783,7 @@ module mpas_halo
                 unpackOffsets => group % fields(i) % unpackOffsets
                 maxNRecvList = group % fields(i) % maxNRecvList
 
+                ! !$acc data attach(compactHaloInfo, compactRecvLists, recvListSrc, recvListDst, nRecvLists, unpackOffsets)
 
                 !
                 ! Unpacking code for real-valued fields
@@ -840,6 +851,7 @@ module mpas_halo
 
                     end select
                 end if
+                ! !$acc end data
             end do
         end do
 
