@@ -757,6 +757,9 @@ module mpas_halo
 
                 if (iEndp == 0) cycle     ! No unpacking needed from this neighbor for this field
 
+                bufstart = group % groupRecvOffsets(iReq)
+                bufend = group % groupRecvOffsets(iReq) + group % groupRecvCounts(iReq) - 1
+                !$acc update device(group % recvBuf(bufstart:bufend))
 
                 compactHaloInfo => group % fields(i) % compactHaloInfo
                 compactRecvLists => group % fields(i) % compactRecvLists
@@ -787,6 +790,8 @@ module mpas_halo
                         !
                         ! Unpack recv buffer from all neighbors for current field
                         !
+                        !$acc data copy(group % fields(i) % r1arr(:))
+                        !$acc kernels default(present)
                         do iHalo = 1, nHalos
                             do j = 1, maxNRecvList
                                 if (j <= nRecvLists(iHalo,iEndp)) then
@@ -795,6 +800,8 @@ module mpas_halo
                                 end if
                             end do
                         end do
+                        !$acc end kernels
+                        !$acc end data
 
                     !
                     ! Unpacking code for 2-d real-valued fields
@@ -803,6 +810,8 @@ module mpas_halo
                         !
                         ! Unpack recv buffer from all neighbors for current field
                         !
+                        !$acc data copy(group % fields(i) % r2arr(:,:))
+                        !$acc kernels default(present)
                         do iHalo = 1, nHalos
                             do j = 1, maxNRecvList
                                 do i1 = 1, dim1
@@ -813,6 +822,8 @@ module mpas_halo
                                 end do
                             end do
                         end do
+                        !$acc end kernels
+                        !$acc end data
 
                     !
                     ! Unpacking code for 3-d real-valued fields
@@ -821,6 +832,8 @@ module mpas_halo
                         !
                         ! Unpack recv buffer from all neighbors for current field
                         !
+                        !$acc data copy(group % fields(i) % r3arr(:,:,:))
+                        !$acc kernels default(present)
                         do iHalo = 1, nHalos
                             do j = 1, maxNRecvList
                                 do i2 = 1, dim2
@@ -834,6 +847,8 @@ module mpas_halo
                                 end do
                             end do
                         end do
+                        !$acc end kernels
+                        !$acc end data
 
                     end select
                 end if
