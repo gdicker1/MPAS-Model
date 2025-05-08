@@ -279,6 +279,16 @@ module mpas_halo
         call mpas_pool_remove_subpool(domain % haloGroupPool, groupName)
 
         call refactor_lists(domain, groupName, iErr)
+        !$acc enter data copyin(newGroup)
+        !$acc enter data copyin(newGroup % recvBuf(:))
+        !$acc enter data copyin(newGroup % fields(:))
+        do i = 1, newGroup % nFields
+            !$acc enter data copyin(newGroup % fields(i))
+            !$acc enter data copyin(newGroup % fields(i) % nRecvLists(:,:))
+            !$acc enter data copyin(newGroup % fields(i) % unpackOffsets(:))
+            !$acc enter data copyin(newGroup % fields(i) % recvListSrc(:,:,:))
+            !$acc enter data copyin(newGroup % fields(i) % recvListDst(:,:,:))
+        end do
 
     end subroutine mpas_halo_exch_group_complete
 
@@ -353,9 +363,13 @@ module mpas_halo
             deallocate(cursor % fields(i) % sendListSrc)
             deallocate(cursor % fields(i) % sendListDst)
             deallocate(cursor % fields(i) % packOffsets)
+            !$acc exit data delete(cursor % fields(i) % nRecvLists)
             deallocate(cursor % fields(i) % nRecvLists)
+            !$acc exit data delete(cursor % fields(i) % recvListSrc)
             deallocate(cursor % fields(i) % recvListSrc)
+            !$acc exit data delete(cursor % fields(i) % recvListDst)
             deallocate(cursor % fields(i) % recvListDst)
+            !$acc exit data delete(cursor % fields(i) % unpackOffsets)
             deallocate(cursor % fields(i) % unpackOffsets)
         end do
         deallocate(cursor % fields)
@@ -369,9 +383,11 @@ module mpas_halo
         deallocate(cursor % groupRecvOffsets)
         deallocate(cursor % groupRecvCounts)
         deallocate(cursor % sendBuf)
+        !$acc exit data delete(cursor % recvBuf(:))
         deallocate(cursor % recvBuf)
         deallocate(cursor % sendRequests)
         deallocate(cursor % recvRequests)
+        !$acc exit data finalize delete(cursor)
         deallocate(cursor)
 
     end subroutine mpas_halo_exch_group_destroy
