@@ -474,6 +474,7 @@ module mpas_halo
             else if (info % nDims == 3) then
                 call mpas_pool_get_field(domain % blocklist % allFields, fieldName, r3d, timeLevel=local_timeLevel)
                 call mpas_pool_add_field(group, fieldName//'.field', r3d)
+
             else
                 call mpas_log_write('Unsupported dimensionality for real field '//trim(fieldName), messageType=MPAS_LOG_CRIT)
             end if
@@ -508,6 +509,7 @@ module mpas_halo
         use mpas_derived_types, only : domain_type, mpas_halo_group, MPAS_HALO_REAL, MPAS_LOG_CRIT
         use mpas_pool_routines, only : mpas_pool_get_array
         use mpas_log, only : mpas_log_write
+        use openacc
 
         ! Parameters
 #ifdef MPAS_USE_MPI_F08
@@ -554,6 +556,8 @@ module mpas_halo
         integer :: maxNRecvList
         integer, dimension(:,:,:), CONTIGUOUS pointer :: recvListSrc, recvListDst
         integer, dimension(:), CONTIGUOUS pointer :: unpackOffsets
+
+        character(len=1024) :: pcast_msg
 
 
         if (present(iErr)) then
@@ -741,6 +745,9 @@ module mpas_halo
 
                 if (iEndp == 0) cycle     ! No unpacking needed from this neighbor for this field
 
+                write(pcast_msg,'(A,A,A,A,A,I0)') "gname=", trim(group % groupName), " fname=", trim(group % fields(i) % fieldName), " iReq=", iReq
+                write(*,'(A,I0,A,A,A)'), "GDD: pcast_compare var='group % recvBuf' type='real' size=", size(group % recvBuf), " msg='", trim(pcast_msg), "'"
+                call pcast_compare(group % recvBuf, "real", size(group % recvBuf), "group % recvBuf", trim(pcast_msg), "mpas_halo_exch_group_full_halo_exch", i)
 
                 compactHaloInfo => group % fields(i) % compactHaloInfo
                 compactRecvLists => group % fields(i) % compactRecvLists
