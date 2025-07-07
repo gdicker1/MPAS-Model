@@ -786,6 +786,9 @@ module mpas_halo
                                 end if
                             end do
                         end do
+                        write(pcast_msg,'(A,A,A,A,A,I0)') "gname=", trim(group % groupName), " fname=", trim(group % fields(i) % fieldName), " iReq=", iReq
+                        write(*,'(A,I0,A,A,A)'), "GDD: pcast_compare var='group % fields(i) % r1arr(:)' type='real' size=", size(group % fields(i) % r1arr(:)), " msg='", trim(pcast_msg), "'"
+                        call pcast_compare(group % fields(i) % r1arr(:), "real", size(group % fields(i) % r1arr(:)), "group % fields(i) % r1arr(:)", trim(pcast_msg), "mpas_halo_exch_group_full_halo_exch", i)
 
                     !
                     ! Unpacking code for 2-d real-valued fields
@@ -804,6 +807,9 @@ module mpas_halo
                                 end do
                             end do
                         end do
+                        write(pcast_msg,'(A,A,A,A,A,I0)') "gname=", trim(group % groupName), " fname=", trim(group % fields(i) % fieldName), " iReq=", iReq
+                        write(*,'(A,I0,A,A,A)'), "GDD: pcast_compare var='group % fields(i) % r2arr(:,:)' type='real' size=", size(group % fields(i) % r2arr(:,:)), " msg='", trim(pcast_msg), "'"
+                        call pcast_compare(group % fields(i) % r2arr(:,:), "real", size(group % fields(i) % r2arr(:,:)), "group % fields(i) % r2arr(:,:)", trim(pcast_msg), "mpas_halo_exch_group_full_halo_exch", i)
 
                     !
                     ! Unpacking code for 3-d real-valued fields
@@ -825,6 +831,9 @@ module mpas_halo
                                 end do
                             end do
                         end do
+                        write(pcast_msg,'(A,A,A,A,A,I0)') "gname=", trim(group % groupName), " fname=", trim(group % fields(i) % fieldName), " iReq=", iReq
+                        write(*,'(A,I0,A,A,A)'), "GDD: pcast_compare var='group % fields(i) % r3arr(:,:,:)' type='real' size=", size(group % fields(i) % r3arr(:,:,:)), " msg='", trim(pcast_msg), "'"
+                        call pcast_compare(group % fields(i) % r3arr(:,:,:), "real", size(group % fields(i) % r3arr(:,:,:)), "group % fields(i) % r3arr(:,:,:)", trim(pcast_msg), "mpas_halo_exch_group_full_halo_exch", i)
 
                     end select
                 end if
