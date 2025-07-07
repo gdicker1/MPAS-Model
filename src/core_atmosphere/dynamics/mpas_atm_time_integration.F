@@ -37,6 +37,8 @@ module atm_time_integration
    
    use mpas_atm_iau  
 
+   use iso_fortran_env , only : output_unit
+
    !
    ! Abstract interface for routine used to communicate halos of fields
    ! in a named group
@@ -772,6 +774,8 @@ module atm_time_integration
 
       real (kind=RKIND)  :: time_dyn_step
       logical, parameter :: debug = .false.
+      integer :: gdd_halo
+      gdd_halo = 0
 
 
       !
@@ -916,6 +920,9 @@ module atm_time_integration
       !
       ! Communicate halos for theta_m, scalars, pressure_p, and rtheta_p
       !
+      gdd_halo = gdd_halo + 1
+      write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:theta_m,scalars,pressure_p,rtheta_p', "'"
+      flush output_unit
       call exchange_halo_group(domain, 'dynamics:theta_m,scalars,pressure_p,rtheta_p')
 
       call mpas_timer_start('atm_rk_integration_setup')
@@ -997,6 +1004,9 @@ module atm_time_integration
 !$OMP END PARALLEL DO
          call mpas_timer_stop('atm_compute_vert_imp_coefs')
 
+         gdd_halo = gdd_halo + 1
+         write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:exner', "'"
+         flush output_unit
          call exchange_halo_group(domain, 'dynamics:exner')
 
 
@@ -1070,6 +1080,9 @@ module atm_time_integration
             !***********************************
 
 ! tend_u
+            gdd_halo = gdd_halo + 1
+            write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:tend_u', "'"
+            flush output_unit
             call exchange_halo_group(domain, 'dynamics:tend_u')
    
             call mpas_timer_start('small_step_prep')
@@ -1144,6 +1157,9 @@ module atm_time_integration
 
             do small_step = 1, number_sub_steps(rk_step)
 
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:rho_pp', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:rho_pp')
 
                call mpas_timer_start('atm_advance_acoustic_step')
@@ -1167,6 +1183,9 @@ module atm_time_integration
 ! rtheta_pp
 ! This is the only communications needed during the acoustic steps because we solve for u on all edges of owned cells
 
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:rtheta_pp', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:rtheta_pp')
 
 !  complete update of horizontal momentum by including 3d divergence damping at the end of the acoustic step
@@ -1187,6 +1206,9 @@ module atm_time_integration
             !
             ! Communicate halos for rw_p[1,2], ru_p[1,2], rho_pp[1,2], rtheta_pp[2]
             !
+            gdd_halo = gdd_halo + 1
+            write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:rw_p,ru_prho_pp,rtheta_pp', "'"
+            flush output_unit
             call exchange_halo_group(domain, 'dynamics:rw_p,ru_p,rho_pp,rtheta_pp')
 
             call mpas_timer_start('atm_recover_large_step_variables')
@@ -1248,8 +1270,14 @@ module atm_time_integration
             
             ! u
             if (config_apply_lbcs) then
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:u_123', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:u_123')
             else
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:u_3', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:u_3')
             end if
 
@@ -1263,6 +1291,9 @@ module atm_time_integration
 
                if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
 
+                  gdd_halo = gdd_halo + 1
+                  write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:scalars', "'"
+                  flush output_unit
                   call exchange_halo_group(domain, 'dynamics:scalars')
 
                   allocate(scalars_driving(num_scalars,nVertLevels,nCells+1))
@@ -1313,11 +1344,17 @@ module atm_time_integration
                !
                ! Communicate halos for w[1,2], pv_edge[1,2], rho_edge[1,2], scalars[1,2]
                !
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:w,pv_edge,rho_edge,scalars', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:w,pv_edge,rho_edge,scalars')
             else
                !
                ! Communicate halos for w[1,2], pv_edge[1,2], rho_edge[1,2]
                !
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:w,pv_edge,rho_edge', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:w,pv_edge,rho_edge')
             end if
 
@@ -1333,6 +1370,9 @@ module atm_time_integration
 !$OMP END PARALLEL DO
 
               ! w halo values needs resetting after regional boundary update
+              gdd_halo = gdd_halo + 1
+              write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:w', "'"
+              flush output_unit
               call exchange_halo_group(domain, 'dynamics:w')
 
             end if ! end of regional_MPAS addition 
@@ -1344,6 +1384,9 @@ module atm_time_integration
             !
             ! Communicate halos for theta_m[1,2], pressure_p[1,2], and rtheta_p[1,2]
             !
+            gdd_halo = gdd_halo + 1
+            write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:theta_m,pressure_p,rtheta_p', "'"
+            flush output_unit
             call exchange_halo_group(domain, 'dynamics:theta_m,pressure_p,rtheta_p')
 
             !
@@ -1409,6 +1452,9 @@ module atm_time_integration
             if (config_apply_lbcs) then  ! adjust boundary tendencies for regional_MPAS scalar transport
 
                ! need to fill halo for horizontal filter
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:scalars', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:scalars')
    
                allocate(scalars_driving(num_scalars,nVertLevels,nCells+1))
@@ -1435,6 +1481,9 @@ module atm_time_integration
 !------------------------------------------------------------------------------------------------------------------------
 
             if (rk_step < 3) then
+               gdd_halo = gdd_halo + 1
+               write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:scalars', "'"
+               flush output_unit
                call exchange_halo_group(domain, 'dynamics:scalars')
             end if
 
@@ -1548,6 +1597,9 @@ module atm_time_integration
 
       if (config_apply_lbcs) then  ! adjust boundary values for regional_MPAS scalar transport
 
+         gdd_halo = gdd_halo + 1
+         write(output_unit, '(A,I0,A,A,A)') "GDD: atm_srk3, call_num=", gdd_halo, " gname='", 'dynamics:scalars', "'"
+         flush output_unit
          call exchange_halo_group(domain, 'dynamics:scalars')
 
          allocate(scalars_driving(num_scalars,nVertLevels,nCells+1))
@@ -3907,6 +3959,8 @@ module atm_time_integration
 
       real (kind=RKIND), parameter :: eps=1.e-20
 
+      integer :: gdd_halo
+
       flux4(q_im2, q_im1, q_i, q_ip1, ua) =                     &
           ua*( 7.*(q_i + q_im1) - (q_ip1 + q_im2) )/12.0
 
@@ -3919,6 +3973,8 @@ module atm_time_integration
       else
          local_advance_density = .true.
       end if
+
+      gdd_halo = 0
 
       !  for positive-definite or monotonic option, we first update scalars using the tendency from sources other than
       !  the resolved transport (these should constitute a positive definite update).  
@@ -3971,6 +4027,9 @@ module atm_time_integration
 
 !$OMP BARRIER
 !$OMP MASTER
+      gdd_halo = gdd_halo + 1
+      write(output_unit, '(A,I0,A,A,A)') "GDD: atm_adv_scalars_mono_work, call_num=", gdd_halo, " gname='", 'dynamics:'//trim(field_name)//'_old', "'"
+      flush output_unit
       call exchange_halo_group(block % domain, 'dynamics:'//trim(field_name)//'_old')
 !$OMP END MASTER
 !$OMP BARRIER
@@ -4385,6 +4444,9 @@ module atm_time_integration
 
 !$OMP BARRIER
 !$OMP MASTER
+         gdd_halo = gdd_halo + 1
+         write(output_unit, '(A,I0,A,A,A)') "GDD: atm_adv_scalars_mono_work, call_num=", gdd_halo, " gname='", 'dynamics:scale', "'"
+         flush output_unit
          call exchange_halo_group(block % domain, 'dynamics:scale')
 !$OMP END MASTER
 !$OMP BARRIER
